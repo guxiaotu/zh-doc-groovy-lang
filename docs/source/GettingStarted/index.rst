@@ -3,6 +3,7 @@
 
 .. toctree::
    :maxdepth: 2
+   :numbered:
 
    install-groovy
-   Groovy开发包
+   The-Groovy-Development-Kit
