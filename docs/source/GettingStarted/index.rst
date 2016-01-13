@@ -4,5 +4,5 @@
 .. toctree::
    :maxdepth: 2
 
-   Groovy安装
+   install-groovy
    Groovy开发包
