@@ -11,6 +11,9 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+   起步
+   语言规范
+
 
 
 Indices and tables
