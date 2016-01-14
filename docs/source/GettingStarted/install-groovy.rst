@@ -144,7 +144,7 @@ IDE plugin
 
 这里将介绍通过二进制包，安装 Groovy.
 
-- 首先`下载 <http://www.groovy-lang.org/install.html#download-groovy>`_ ，在文件系统将下载文件解压。
+- 首先 `下载 <http://www.groovy-lang.org/install.html#download-groovy>`_ ，在文件系统将下载文件解压。
 
 - 设置环境变量 ``GROOVY_HOME`` 为文件的解压目录。
 
@@ -158,7 +158,7 @@ IDE plugin
 
 .. code-block:: sh
 
-	groovysh
+	groovysh	
 
 这将会创建一个 Groovy 的交互 shell ，用于执行 Groovy 代码。也可以运行 `Swing interactive console <http://docs.groovy-lang.org/latest/html/documentation/tools-groovyconsole.html>`_ ,如：
 
@@ -171,3 +171,5 @@ IDE plugin
 .. code-block:: sh
 
 	groovy SomeScript
+
+
