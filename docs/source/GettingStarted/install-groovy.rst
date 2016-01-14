@@ -3,8 +3,6 @@ Groovy 安装
 ==========
 
 
-
-
 下载
 -------------
 
@@ -171,5 +169,4 @@ IDE plugin
 .. code-block:: sh
 
 	groovy SomeScript
-
 
