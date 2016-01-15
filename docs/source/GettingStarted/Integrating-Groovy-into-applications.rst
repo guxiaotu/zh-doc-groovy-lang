@@ -193,32 +193,41 @@ It is possible to work around the shared instance of Binding by leveraging the S
 
 Custom script class
 ^^^^^^^^^^^^^^^^^^^^^^^^
+我们已经知道 ``parse`` 方法返回 ``groovy.lang.Script`` 实例，还能够通过自定义扩展 ``Script`` 类来增强 ``script`` 的处理能力，例如：
 
-We have seen that the parse method returns an instance of groovy.lang.Script, but it is possible to use a custom class, given that it extends Script itself. It can be used to provide additional behavior to the script like in the example below:
+.. code-block:: groovy
 
-abstract class MyScript extends Script {
-    String name
+	abstract class MyScript extends Script {
+	    String name
 
-    String greet() {
-        "Hello, $name!"
-    }
-}
-The custom class defines a property called name and a new method called greet. This class can be used as the script base class by using a custom configuration:
+	    String greet() {
+	        "Hello, $name!"
+	    }
+	}
 
-import org.codehaus.groovy.control.CompilerConfiguration
+扩展类自定义了一个 ``name`` 属性以及 ``greet`` 方法。通过配置这个类可以按照 ``script`` 类方式使用。
 
-def config = new CompilerConfiguration()                                    
-config.scriptBaseClass = 'MyScript'                                         
+.. code-block:: groovy
 
-def shell = new GroovyShell(this.class.classLoader, new Binding(), config)  
-def script = shell.parse('greet()')                                         
-assert script instanceof MyScript
-script.setName('Michel')
-assert script.run() == 'Hello, Michel!'
-create a CompilerConfiguration instance
-instruct it to use MyScript as the base class for scripts
-then use the compiler configuration when you create the shell
-the script now has access to the new method greet
+	import org.codehaus.groovy.control.CompilerConfiguration                        
+
+	def config = new CompilerConfiguration()                                             // <1>
+	config.scriptBaseClass = 'MyScript'                                                  // <2>
+
+	def shell = new GroovyShell(this.class.classLoader, new Binding(), config)           // <3>
+	def script = shell.parse('greet()')                                                  // <4>
+	assert script instanceof MyScript
+	script.setName('Michel')
+	assert script.run() == 'Hello, Michel!'
+
+<1> 创建 ``CompilerConfiguration`` 实例
+
+<2> 指定 ``scripts`` 执行的基类名称为 ``MyScript``
+
+<3> 创建 ``shell`` 是指定当前定义的编译器配置信息
+
+<4> 此 ``script`` 可以访问 ``greet`` 方法
+
 You are not limited to the sole scriptBaseClass configuration. You can use any of the compiler configuration tweaks, including the compilation customizers.
 1.3. GroovyClassLoader
 
