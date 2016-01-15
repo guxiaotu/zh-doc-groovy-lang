@@ -228,147 +228,196 @@ Custom script class
 
 <4> 此 ``script`` 可以访问 ``greet`` 方法
 
-You are not limited to the sole scriptBaseClass configuration. You can use any of the compiler configuration tweaks, including the compilation customizers.
-1.3. GroovyClassLoader
+并不限于使用唯一的 ``scriptBaseClass`` 配置。可以使用任意多个编译器配置，甚至自定义。
 
-In the previous section, we have shown that GroovyShell was an easy tool to execute scripts, but it makes it complicated to compile anything but scripts. Internally, it makes use of the groovy.lang.GroovyClassLoader, which is at the heart of the compilation and loading of classes at runtime.
 
-By leveraging the GroovyClassLoader instead of GroovyShell, you will be able to load classes, instead of instances of scripts:
+GroovyClassLoader
+~~~~~~~~~~~~~~~~~~~~~~~~
 
-import groovy.lang.GroovyClassLoader
+前面章节，我看到 ``GroovyShell`` 是用来执行 ``scripts`` 的一个简单工具。在其内部，它使用 ``groovy.lang.GroovyClassLoader`` 在运行时编译并加载 ``classes``.
 
-def gcl = new GroovyClassLoader()                                           
-def clazz = gcl.parseClass('class Foo { void doIt() { println "ok" } }')    
-assert clazz.name == 'Foo'                                                  
-def o = clazz.newInstance()                                                 
-o.doIt()                                                                    
-create a new GroovyClassLoader
-parseClass will return an instance of Class
-you can check that the class which is returns is really the one defined in the script
-and you can create a new instance of the class, which is not a script
-then call any method on it
-A GroovyClassLoader keeps a reference of all the classes it created, so it is easy to create a memory leak. In particular, if you execute the same script twice, if it is a String, then you obtain two distinct classes!
-import groovy.lang.GroovyClassLoader
+通过使用 ``GroovyClassLoader`` 替代 ``GroovyShell`` ，你可以加载 ``classes`` 替代 ``scripts`` 实例。
 
-def gcl = new GroovyClassLoader()
-def clazz1 = gcl.parseClass('class Foo { }')                                
-def clazz2 = gcl.parseClass('class Foo { }')                                
-assert clazz1.name == 'Foo'                                                 
-assert clazz2.name == 'Foo'
-assert clazz1 != clazz2                                                     
-dynamically create a class named "Foo"
-create an identical looking class, using a separate parseClass call
-make sure both classes have the same name
-but they are actually different!
-The reason is that a GroovyClassLoader doesn’t keep track of the source text. If you want to have the same instance, then the source must be a file, like in this example:
+.. code-block:: groovy
 
-def gcl = new GroovyClassLoader()
-def clazz1 = gcl.parseClass(file)                                           
-def clazz2 = gcl.parseClass(new File(file.absolutePath))                    
-assert clazz1.name == 'Foo'                                                 
-assert clazz2.name == 'Foo'
-assert clazz1 == clazz2                                                     
-parse a class from a File
-parse a class from a distinct file instance, but pointing to the same physical file
-make sure our classes have the same name
-but now, they are the same instance
+    
+	import groovy.lang.GroovyClassLoader
+
+	def gcl = new GroovyClassLoader()             												// <1>                              
+	def clazz = gcl.parseClass('class Foo { void doIt() { println "ok" } }')    				// <2>
+	assert clazz.name == 'Foo'                                                  				// <3>
+	def o = clazz.newInstance()                                                 				// <4>
+	o.doIt()                                                                    				// <5>
+
+
+<1> create a new GroovyClassLoader
+<2> parseClass will return an instance of Class
+<3> you can check that the class which is returns is really the one defined in the script
+<4> and you can create a new instance of the class, which is not a script
+<5> then call any method on it
+
+``GroovyClassLoader`` 中维护它创建的所有 ``classes`` ， 所有存储溢出会比较容易出现。尤其是， 当你执行两次相同的脚本，你将得到两个不同的类！
+
+.. code-block:: groovy
+
+	import groovy.lang.GroovyClassLoader
+
+	def gcl = new GroovyClassLoader()								
+	def clazz1 = gcl.parseClass('class Foo { }')                    // <1>            
+	def clazz2 = gcl.parseClass('class Foo { }')                     // <2>           
+	assert clazz1.name == 'Foo' 									// <3>	                                                
+	assert clazz2.name == 'Foo' 										
+	assert clazz1 != clazz2                                         // <4>            
+
+<1> dynamically create a class named "Foo"
+<2> create an identical looking class, using a separate parseClass call
+<3> make sure both classes have the same name
+<4> but they are actually different!
+
+如果你希望获得相同的实例， 源数据必须为文件，例如：
+
+.. code-block:: groovy
+
+	def gcl = new GroovyClassLoader()
+	def clazz1 = gcl.parseClass(file)               						// <1>                            
+	def clazz2 = gcl.parseClass(new File(file.absolutePath))                // <2>    
+	assert clazz1.name == 'Foo'                                             // <3>    
+	assert clazz2.name == 'Foo'
+	assert clazz1 == clazz2     											// <4>		
+
+<1> parse a class from a File
+<2> parse a class from a distinct file instance, but pointing to the same physical file
+<3> make sure our classes have the same name
+<4> but now, they are the same instance
+
+使用文件作为数据源， ``GroovyClassLoader`` 可以缓存生成的 ``class`` 文件， 这样可以避免在运行时创建多个类从单一源中。
 Using a File as input, the GroovyClassLoader is capable of caching the generated class file, which avoids creating multiple classes at runtime for the same source.
 
-1.4. GroovyScriptEngine
+GroovyScriptEngine
+------------------
 
-The groovy.util.GroovyScriptEngine class provides a flexible foundation for applications which rely on script reloading and script dependencies. While GroovyShell focuses on standalone Script`s and `GroovyClassLoader handles dynamic compilation and loading of any Groovy class, the GroovyScriptEngine will add a layer on top of GroovyClassLoader to handle both script dependencies and reloading.
+``groovy.util.GroovyScriptEngine`` 依靠 ``script`` 重载和依赖，为应用的灵活扩展提供基础设施。``GroovyShell`` 关注独立的 ``Script`` ， ``GroovyClassLoader`` 用于动态编译及加载 ``Groovy`` 类， ``GroovyScriptEngine`` 在 ``GroovyClassLoader`` 之上建立一层用于处理 ``script`` 的依赖及重新加载。
 
-To illustrate this, we will create a script engine and execute code in an infinite loop. First of all, you need to create a directory with the following script inside:
-
-ReloadingTest.groovy
-class Greeter {
-    String sayHello() {
-        def greet = "Hello, world!"
-        greet
-    }
-}
-
-new Greeter()
-then you can execute this code using a GroovyScriptEngine:
-
-def binding = new Binding()
-def engine = new GroovyScriptEngine([tmpDir.toURI().toURL()] as URL[])          
-
-while (true) {
-    def greeter = engine.run('ReloadingTest.groovy', binding)                   
-    println greeter.sayHello()                                                  
-    Thread.sleep(1000)
-}
-create a script engine which will look for sources into our source directory
-execute the script, which will return an instance of Greeter
-print the greeting message
-At this point, you should see a message printed every second:
-
-Hello, world!
-Hello, world!
-...
-Without interrupting the script execution, now replace the contents of the ReloadingTest file with:
+为说明这点，我们将创建一个 ``script engine`` 并在无限循环中执行代码。
+首先创建下面代码：
 
 ReloadingTest.groovy
-class Greeter {
-    String sayHello() {
-        def greet = "Hello, Groovy!"
-        greet
-    }
-}
+++++++++++++++++++++
+
+.. code-block:: groovy
+
+	class Greeter {
+	    String sayHello() {
+	        def greet = "Hello, world!"
+	        greet
+	    }
+	}
 
 new Greeter()
-And the message should change to:
 
-Hello, world!
-...
-Hello, Groovy!
-Hello, Groovy!
-...
-But it is also possible to have a dependency on another script. To illustrate this, create the following file into the same directory, without interrupting the executing script:
+然后使用 ``GroovyScriptEngine`` 执行代码：
 
-Depencency.groovy
-class Dependency {
-    String message = 'Hello, dependency 1'
-}
-and update the ReloadingTest script like this:
+.. code-block:: groovy
 
-ReloadingTest.groovy
-import Dependency
+	def binding = new Binding()
+	def engine = new GroovyScriptEngine([tmpDir.toURI().toURL()] as URL[])             // <1>     
 
-class Greeter {
-    String sayHello() {
-        def greet = new Dependency().message
-        greet
-    }
-}
+	while (true) {
+	    def greeter = engine.run('ReloadingTest.groovy', binding)                     // <2>
+	    println greeter.sayHello()                                                    // <3>
+	    Thread.sleep(1000)
+	}
 
-new Greeter()
-And this time, the message should change to:
+<1> create a script engine which will look for sources into our source directory
+<2> execute the script, which will return an instance of Greeter
+<3> print the greeting message
 
-Hello, Groovy!
-...
-Hello, dependency 1!
-Hello, dependency 1!
-...
-And as a last test, you can update the Dependency.groovy file without touching the ReloadingTest file:
+每秒钟将看到下面的打印信息：
 
-Depencency.groovy
-class Dependency {
-    String message = 'Hello, dependency 2'
-}
-And you should observe that the dependent file was reloaded:
+|Hello, world!
+|Hello, world!
+|...
 
-Hello, dependency 1!
-...
-Hello, dependency 2!
-Hello, dependency 2!
-1.5. CompilationUnit
+在不终止 ``script`` 执行，修改 ``ReloadingTest`` 文件，如：
+
+.. code-block:: groovy
+
+	//ReloadingTest.groovy
+	class Greeter {
+	    String sayHello() {
+	        def greet = "Hello, Groovy!"
+	        greet
+	    }
+	}
+
+	new Greeter()
+
+打印内容将会变化：	
+
+|Hello, world!
+|...
+|Hello, Groovy!
+|Hello, Groovy!
+|...
+
+下面将演示 ``script`` 的依赖，新建下面文件，同样不中断 ``script`` 的执行：
+
+.. code-block:: groovy
+
+	//Depencency.groovy
+	class Dependency {
+	    String message = 'Hello, dependency 1'
+	}
+
+更新 ``ReloadingTest``  文件:
+
+.. code-block:: groovy
+
+	//ReloadingTest.groovy
+	import Dependency
+
+	class Greeter {
+	    String sayHello() {
+	        def greet = new Dependency().message
+	        greet
+	    }
+	}
+
+	new Greeter()
+
+打印内容将会有如下变化：	
+
+｜Hello, Groovy!
+｜...
+｜Hello, dependency 1!
+｜Hello, dependency 1!
+｜...
+
+你可以更新 ``Dependency.groovy`` 文件：
+
+.. code-block:: groovy
+
+	//Depencency.groovy
+	class Dependency {
+	    String message = 'Hello, dependency 2'
+	}
+
+你将看到 ``dependency`` 文件被从新加载：
+
+｜Hello, dependency 1!
+｜...
+｜Hello, dependency 2!
+｜Hello, dependency 2!
+
+CompilationUnit
+---------------
 
 Ultimately, it is possible to perform more operations during compilation by relying directly on the org.codehaus.groovy.control.CompilationUnit class. This class is responsible for determining the various steps of compilation and would let you introduce new steps or even stop compilation at various phases. This is for example how stub generation is done, for the joint compiler.
 
 However, overriding CompilationUnit is not recommended and should only be done if no other standard solution works.
 
+Bean Scripting Framework
+========================
 2. Bean Scripting Framework
 
 The Bean Scripting Framework is an attempt to create an API to allow calling scripting languages from Java. It hasn’t been updated for long and abandoned in favor of the standard JSR-223 API.
