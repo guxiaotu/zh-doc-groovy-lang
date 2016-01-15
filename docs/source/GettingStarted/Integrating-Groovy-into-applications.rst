@@ -410,29 +410,38 @@ new Greeter()
 ｜Hello, dependency 2!
 
 CompilationUnit
----------------
+~~~~~~~~~~~~~~~~
 
 Ultimately, it is possible to perform more operations during compilation by relying directly on the org.codehaus.groovy.control.CompilationUnit class. This class is responsible for determining the various steps of compilation and would let you introduce new steps or even stop compilation at various phases. This is for example how stub generation is done, for the joint compiler.
 
 However, overriding CompilationUnit is not recommended and should only be done if no other standard solution works.
 
 Bean Scripting Framework
-========================
-2. Bean Scripting Framework
+-------------------------
 
-The Bean Scripting Framework is an attempt to create an API to allow calling scripting languages from Java. It hasn’t been updated for long and abandoned in favor of the standard JSR-223 API.
-The BSF engine for Groovy is implemented by the org.codehaus.groovy.bsf.GroovyEngine class. However, that fact is normally hidden away by the BSF APIs. You just treat Groovy like any of the other scripting languages via the BSF API.
+`Bean Scripting Framework <http://commons.apache.org/proper/commons-bsf/>`_ 用于创建 `Java` 调用脚本语言的 `API`。 ``BSF`` 已经有很长时间没有更新，并且在 `JSR-223 <http://www.groovy-lang.org/integrating.html#jsr223>`_ 中已经抛弃。
 
-Since Groovy has its own native support for integration with Java, you only need to worry about BSF if you also want to also be able to call other languages, e.g. JRuby or if you want to remain very loosely coupled from your scripting language.
-2.1. Getting started
+``Groovy`` 中的 ``BSF`` 引擎使用 ``org.codehaus.groovy.bsf.GroovyEngine`` 实现。事实上， ``BSF APIs`` 已经将其隐藏。通过 ``BSF API`` 使用 ``Groovy``
+和其他脚本语言一样。
 
-Provided you have Groovy and BSF jars in your classpath, you can use the following Java code to run a sample Groovy script:
+由于 ``Groovy`` 其原生的支持 ``Java`` ，你所需要关心的 ``BSF`` 如何调用其他语言，例如 : `JRuby <http://jruby.org/>`_ 
 
-String myScript = "println('Hello World')\n  return [1, 2, 3]";
-BSFManager manager = new BSFManager();
-List answer = (List) manager.eval("groovy", "myScript.groovy", 0, 0, myScript);
-assertEquals(3, answer.size());
-2.2. Passing in variables
+
+
+Getting started
+^^^^^^^^^^^^^^^
+将 ``Groovy`` 和 ``BSF`` 的 ``jars`` 加入到 ``classpath``。你可以像下面 ``Java`` 代码中调用 ``Groovy`` 脚本：
+
+.. code-block:: Java
+
+	String myScript = "println('Hello World')\n  return [1, 2, 3]";
+	BSFManager manager = new BSFManager();
+	List answer = (List) manager.eval("groovy", "myScript.groovy", 0, 0, myScript);
+	assertEquals(3, answer.size());
+
+
+Passing in variables
+^^^^^^^^^^^^^^^^^^^^
 
 BSF lets you pass beans between Java and your scripting language. You can register/unregister beans which makes them known to BSF. You can then use BSF methods to lookup beans as required. Alternatively, you can declare/undeclare beans. This will register them but also make them available for use directly in your scripting language. This second approach is the normal approach used with Groovy. Here is an example:
 
