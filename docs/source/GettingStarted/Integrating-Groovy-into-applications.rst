@@ -419,7 +419,7 @@ However, overriding CompilationUnit is not recommended and should only be done i
 Bean Scripting Framework
 -------------------------
 
-`Bean Scripting Framework <http://commons.apache.org/proper/commons-bsf/>`_ 用于创建 `Java` 调用脚本语言的 `API`。 ``BSF`` 已经有很长时间没有更新，并且在 `JSR-223 <http://www.groovy-lang.org/integrating.html#jsr223>`_ 中已经抛弃。
+`Bean Scripting Framework <http://commons.apache.org/proper/commons-bsf/>`_ 用于创建 `Java` 调用脚本语言的 `API`。 ``BSF`` 已经有很长时间没有更新，并且在 `JSR-223 <http://www.groovy-lang.org/integrating.html#jsr223>`_ 中已经废弃。
 
 ``Groovy`` 中的 ``BSF`` 引擎使用 ``org.codehaus.groovy.bsf.GroovyEngine`` 实现。事实上， ``BSF APIs`` 已经将其隐藏。通过 ``BSF API`` 使用 ``Groovy``
 和其他脚本语言一样。
@@ -443,7 +443,8 @@ Getting started
 传递参数
 ^^^^^^^^^^^^^^^^^^^^
 
-BSF lets you pass beans between Java and your scripting language. You can register/unregister beans which makes them known to BSF. You can then use BSF methods to lookup beans as required. Alternatively, you can declare/undeclare beans. This will register them but also make them available for use directly in your scripting language. This second approach is the normal approach used with Groovy. Here is an example:
+``BSF`` 可以在 ``Java`` 与脚本语言中传递参数。你可以在 ``BSF`` 中注册/注销 ``beans``，之后可以在 ``BSF`` 方法中调用。注册的内容可以直接在脚本中使用。
+例如：
 
 .. code-block:: Java
 
@@ -455,7 +456,7 @@ BSF lets you pass beans between Java and your scripting language. You can regist
 Other calling options
 ^^^^^^^^^^^^^^^^^^^^^^
 
-The previous examples used the eval method. BSF makes multiple methods available for your use (see the BSF documentation for more details). One of the other available methods is apply. It allows you to define an anonymous function in your scripting language and apply that function to arguments. Groovy supports this function using closures. Here is an example:
+前面例子中使用 ``eval`` 方法。``BSF`` 中有多种方法可以使用，详细可以查看 `BSF 文档 <http://commons.apache.org/proper/commons-bsf/manual.html>`_ 。这里介绍另一个方法 ``apple``，其可以使用脚本语言定义匿名函数，并使用其参数。``Groovy`` 上可以使用闭包支持这种函数，如下：
 
 .. code-block:: Java
 
@@ -472,21 +473,24 @@ The previous examples used the eval method. BSF makes multiple methods available
 Access to the scripting engine
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Although you don’t normally need it, BSF does provide a hook that lets you get directly to the scripting engine. One of the functions which the engine can perform is to invoke a single method call on an object. Here is an example:
+``BSF`` 中提供勾子，用于直接获取脚本引擎。如下：
 
-BSFManager manager = new BSFManager();
-BSFEngine bsfEngine = manager.loadScriptingEngine("groovy");
-manager.declareBean("myvar", "hello", String.class);
-Object myvar = manager.lookupBean("myvar");
-String result = (String) bsfEngine.call(myvar, "reverse", new Object[0]);
-assertEquals("olleh", result);
+.. code-block:: Java
+
+	BSFManager manager = new BSFManager();
+	BSFEngine bsfEngine = manager.loadScriptingEngine("groovy");
+	manager.declareBean("myvar", "hello", String.class);
+	Object myvar = manager.lookupBean("myvar");
+	String result = (String) bsfEngine.call(myvar, "reverse", new Object[0]);
+	assertEquals("olleh", result);
 
 
 JSR 223 javax.script API
 ----------------------------
 
-JSR-223 is a standard API for calling scripting frameworks in Java. It is available since Java 6 and aims at providing a common framework for calling multiple languages from Java. Groovy provides its own richer integration mechanisms, and if you don’t plan to use multiple languages in the same application, it is recommended that you use the Groovy integration mechanisms instead of the limited JSR-223 API.
-Here is how you need to initialize the JSR-223 engine to talk to Groovy from Java:
+``JSR-223`` 是 ``Java`` 中调用脚本语言框架的标准接口。从 ``Java 6`` 开始，其目标是为了提供一套通用框架来调用脚本语言。 ``Groovy`` 提供了丰富的集成机制，我们也建议使用 ``Groovy`` 集成机制替代 ``JSR-223 API`` 。
+
+这里有关于使用 ``JSR-223`` 引擎的实例：
 
 .. code-block:: Java
 
@@ -497,7 +501,7 @@ Here is how you need to initialize the JSR-223 engine to talk to Groovy from Jav
 	ScriptEngineManager factory = new ScriptEngineManager();
 	ScriptEngine engine = factory.getEngineByName("groovy");
 
-
+接着下面可以开始执行 ``Groovy`` 脚本：
 Then you can execute Groovy scripts easily:
 
 .. code-block:: Java
@@ -505,7 +509,7 @@ Then you can execute Groovy scripts easily:
 	Integer sum = (Integer) engine.eval("(1..10).sum()");
 	assertEquals(new Integer(55), sum);
 
-It is also possible to share variables:
+其中也可以共享变量：
 
 .. code-block:: Java
 
@@ -514,7 +518,7 @@ It is also possible to share variables:
 	String result = (String) engine.eval("first.toLowerCase() + ' ' + second.toUpperCase()");
 	assertEquals("hello WORLD", result);
 
-This next example illustrates calling an invokable function:
+下面演示调用可执行方法：
 
 .. code-block:: Java
 
@@ -530,4 +534,5 @@ This next example illustrates calling an invokable function:
 	assertEquals(new Integer(120), result);
 
 
-The engine keeps per default hard references to the script functions. To change this you should set a engine level scoped attribute to the script context of the name #jsr223.groovy.engine.keep.globals with a String being phantom to use phantom references, weak to use weak references or soft to use soft references - casing is ignored. Any other string will cause the use of hard references.
+
+
