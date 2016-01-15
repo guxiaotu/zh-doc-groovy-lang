@@ -251,9 +251,13 @@ GroovyClassLoader
 
 
 <1> create a new GroovyClassLoader
+
 <2> parseClass will return an instance of Class
+
 <3> you can check that the class which is returns is really the one defined in the script
+
 <4> and you can create a new instance of the class, which is not a script
+
 <5> then call any method on it
 
 ``GroovyClassLoader`` 中维护它创建的所有 ``classes`` ， 所有存储溢出会比较容易出现。尤其是， 当你执行两次相同的脚本，你将得到两个不同的类！
@@ -270,8 +274,11 @@ GroovyClassLoader
 	assert clazz1 != clazz2                                         // <4>            
 
 <1> dynamically create a class named "Foo"
+
 <2> create an identical looking class, using a separate parseClass call
+
 <3> make sure both classes have the same name
+
 <4> but they are actually different!
 
 如果你希望获得相同的实例， 源数据必须为文件，例如：
@@ -286,8 +293,11 @@ GroovyClassLoader
 	assert clazz1 == clazz2     											// <4>		
 
 <1> parse a class from a File
+
 <2> parse a class from a distinct file instance, but pointing to the same physical file
+
 <3> make sure our classes have the same name
+
 <4> but now, they are the same instance
 
 使用文件作为数据源， ``GroovyClassLoader`` 可以缓存生成的 ``class`` 文件， 这样可以避免在运行时创建多个类从单一源中。
@@ -302,7 +312,7 @@ GroovyScriptEngine
 首先创建下面代码：
 
 ReloadingTest.groovy
-++++++++++++++++++++
+
 
 .. code-block:: groovy
 
@@ -329,14 +339,18 @@ new Greeter()
 	}
 
 <1> create a script engine which will look for sources into our source directory
+
 <2> execute the script, which will return an instance of Greeter
+
 <3> print the greeting message
 
 每秒钟将看到下面的打印信息：
 
-|Hello, world!
-|Hello, world!
-|...
+.. code-block:: shell
+
+	Hello, world!
+	Hello, world!
+	...
 
 在不终止 ``script`` 执行，修改 ``ReloadingTest`` 文件，如：
 
@@ -354,11 +368,13 @@ new Greeter()
 
 打印内容将会变化：	
 
-|Hello, world!
-|...
-|Hello, Groovy!
-|Hello, Groovy!
-|...
+.. code-block:: shell
+
+	Hello, world!
+	...
+	Hello, Groovy!
+	Hello, Groovy!
+	...
 
 下面将演示 ``script`` 的依赖，新建下面文件，同样不中断 ``script`` 的执行：
 
@@ -387,11 +403,14 @@ new Greeter()
 
 打印内容将会有如下变化：	
 
-｜Hello, Groovy!
-｜...
-｜Hello, dependency 1!
-｜Hello, dependency 1!
-｜...
+.. code-block:: shell
+
+    
+	Hello, Groovy!
+	...
+	Hello, dependency 1!
+	Hello, dependency 1!
+	...
 
 你可以更新 ``Dependency.groovy`` 文件：
 
@@ -404,10 +423,12 @@ new Greeter()
 
 你将看到 ``dependency`` 文件被从新加载：
 
-｜Hello, dependency 1!
-｜...
-｜Hello, dependency 2!
-｜Hello, dependency 2!
+.. code-block:: shell
+
+	Hello, dependency 1!
+	...
+	Hello, dependency 2!
+	Hello, dependency 2!
 
 CompilationUnit
 ~~~~~~~~~~~~~~~~
@@ -429,7 +450,7 @@ Bean Scripting Framework
 
 
 Getting started
-^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~
 将 ``Groovy`` 和 ``BSF`` 的 ``jars`` 加入到 ``classpath``。你可以像下面 ``Java`` 代码中调用 ``Groovy`` 脚本：
 
 .. code-block:: Java
@@ -441,7 +462,7 @@ Getting started
 
 
 传递参数
-^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~
 
 ``BSF`` 可以在 ``Java`` 与脚本语言中传递参数。你可以在 ``BSF`` 中注册/注销 ``beans``，之后可以在 ``BSF`` 方法中调用。注册的内容可以直接在脚本中使用。
 例如：
@@ -454,7 +475,7 @@ Getting started
 	assertEquals(5, answer);
 
 Other calling options
-^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~
 
 前面例子中使用 ``eval`` 方法。``BSF`` 中有多种方法可以使用，详细可以查看 `BSF 文档 <http://commons.apache.org/proper/commons-bsf/manual.html>`_ 。这里介绍另一个方法 ``apple``，其可以使用脚本语言定义匿名函数，并使用其参数。``Groovy`` 上可以使用闭包支持这种函数，如下：
 
@@ -471,7 +492,7 @@ Other calling options
 	assertEquals(251, actual.intValue());
 	
 Access to the scripting engine
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``BSF`` 中提供勾子，用于直接获取脚本引擎。如下：
 
@@ -486,7 +507,7 @@ Access to the scripting engine
 
 
 JSR 223 javax.script API
-----------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``JSR-223`` 是 ``Java`` 中调用脚本语言框架的标准接口。从 ``Java 6`` 开始，其目标是为了提供一套通用框架来调用脚本语言。 ``Groovy`` 提供了丰富的集成机制，我们也建议使用 ``Groovy`` 集成机制替代 ``JSR-223 API`` 。
 
