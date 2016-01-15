@@ -440,29 +440,37 @@ Getting started
 	assertEquals(3, answer.size());
 
 
-Passing in variables
+传递参数
 ^^^^^^^^^^^^^^^^^^^^
 
 BSF lets you pass beans between Java and your scripting language. You can register/unregister beans which makes them known to BSF. You can then use BSF methods to lookup beans as required. Alternatively, you can declare/undeclare beans. This will register them but also make them available for use directly in your scripting language. This second approach is the normal approach used with Groovy. Here is an example:
 
-BSFManager manager = new BSFManager();
-manager.declareBean("xyz", 4, Integer.class);
-Object answer = manager.eval("groovy", "test.groovy", 0, 0, "xyz + 1");
-assertEquals(5, answer);
-2.3. Other calling options
+.. code-block:: Java
+
+	BSFManager manager = new BSFManager();
+	manager.declareBean("xyz", 4, Integer.class);
+	Object answer = manager.eval("groovy", "test.groovy", 0, 0, "xyz + 1");
+	assertEquals(5, answer);
+
+Other calling options
+^^^^^^^^^^^^^^^^^^^^^^
 
 The previous examples used the eval method. BSF makes multiple methods available for your use (see the BSF documentation for more details). One of the other available methods is apply. It allows you to define an anonymous function in your scripting language and apply that function to arguments. Groovy supports this function using closures. Here is an example:
 
-BSFManager manager = new BSFManager();
-Vector<String> ignoreParamNames = null;
-Vector<Integer> args = new Vector<Integer>();
-args.add(2);
-args.add(5);
-args.add(1);
-Integer actual = (Integer) manager.apply("groovy", "applyTest", 0, 0,
-        "def summer = { a, b, c -> a * 100 + b * 10 + c }", ignoreParamNames, args);
-assertEquals(251, actual.intValue());
-2.4. Access to the scripting engine
+.. code-block:: Java
+
+	BSFManager manager = new BSFManager();
+	Vector<String> ignoreParamNames = null;
+	Vector<Integer> args = new Vector<Integer>();
+	args.add(2);
+	args.add(5);
+	args.add(1);
+	Integer actual = (Integer) manager.apply("groovy", "applyTest", 0, 0,
+	        "def summer = { a, b, c -> a * 100 + b * 10 + c }", ignoreParamNames, args);
+	assertEquals(251, actual.intValue());
+	
+Access to the scripting engine
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Although you don’t normally need it, BSF does provide a hook that lets you get directly to the scripting engine. One of the functions which the engine can perform is to invoke a single method call on an object. Here is an example:
 
@@ -472,37 +480,54 @@ manager.declareBean("myvar", "hello", String.class);
 Object myvar = manager.lookupBean("myvar");
 String result = (String) bsfEngine.call(myvar, "reverse", new Object[0]);
 assertEquals("olleh", result);
-3. JSR 223 javax.script API
+
+
+JSR 223 javax.script API
+----------------------------
 
 JSR-223 is a standard API for calling scripting frameworks in Java. It is available since Java 6 and aims at providing a common framework for calling multiple languages from Java. Groovy provides its own richer integration mechanisms, and if you don’t plan to use multiple languages in the same application, it is recommended that you use the Groovy integration mechanisms instead of the limited JSR-223 API.
 Here is how you need to initialize the JSR-223 engine to talk to Groovy from Java:
 
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
-import javax.script.ScriptException;
-...
-ScriptEngineManager factory = new ScriptEngineManager();
-ScriptEngine engine = factory.getEngineByName("groovy");
+.. code-block:: Java
+
+	import javax.script.ScriptEngine;
+	import javax.script.ScriptEngineManager;
+	import javax.script.ScriptException;
+	...
+	ScriptEngineManager factory = new ScriptEngineManager();
+	ScriptEngine engine = factory.getEngineByName("groovy");
+
+
 Then you can execute Groovy scripts easily:
 
-Integer sum = (Integer) engine.eval("(1..10).sum()");
-assertEquals(new Integer(55), sum);
+.. code-block:: Java
+
+	Integer sum = (Integer) engine.eval("(1..10).sum()");
+	assertEquals(new Integer(55), sum);
+
 It is also possible to share variables:
 
-engine.put("first", "HELLO");
-engine.put("second", "world");
-String result = (String) engine.eval("first.toLowerCase() + ' ' + second.toUpperCase()");
-assertEquals("hello WORLD", result);
+.. code-block:: Java
+
+	engine.put("first", "HELLO");
+	engine.put("second", "world");
+	String result = (String) engine.eval("first.toLowerCase() + ' ' + second.toUpperCase()");
+	assertEquals("hello WORLD", result);
+
 This next example illustrates calling an invokable function:
 
-import javax.script.Invocable;
-...
-ScriptEngineManager factory = new ScriptEngineManager();
-ScriptEngine engine = factory.getEngineByName("groovy");
-String fact = "def factorial(n) { n == 1 ? 1 : n * factorial(n - 1) }";
-engine.eval(fact);
-Invocable inv = (Invocable) engine;
-Object[] params = {5};
-Object result = inv.invokeFunction("factorial", params);
-assertEquals(new Integer(120), result);
+.. code-block:: Java
+
+	import javax.script.Invocable;
+	...
+	ScriptEngineManager factory = new ScriptEngineManager();
+	ScriptEngine engine = factory.getEngineByName("groovy");
+	String fact = "def factorial(n) { n == 1 ? 1 : n * factorial(n - 1) }";
+	engine.eval(fact);
+	Invocable inv = (Invocable) engine;
+	Object[] params = {5};
+	Object result = inv.invokeFunction("factorial", params);
+	assertEquals(new Integer(120), result);
+
+
 The engine keeps per default hard references to the script functions. To change this you should set a engine level scoped attribute to the script context of the name #jsr223.groovy.engine.keep.globals with a String being phantom to use phantom references, weak to use weak references or soft to use soft references - casing is ignored. Any other string will cause the use of hard references.
