@@ -3,10 +3,10 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to groovys's documentation!
+欢迎阅读 Groovy 文档
 ===================================
 
-Contents:
+文档内容原文：http://www.groovy-lang.org/documentation.html
 
 .. toctree::
    :maxdepth: 2
@@ -16,10 +16,4 @@ Contents:
 
 
 
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
 
