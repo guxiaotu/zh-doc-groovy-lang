@@ -8,3 +8,4 @@
    install-groovy
    The-Groovy-Development-Kit
    Integrating-Groovy-into-applications
+   The-Grape-dependency-manager
