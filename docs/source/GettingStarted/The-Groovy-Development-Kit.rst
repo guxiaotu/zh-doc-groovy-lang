@@ -17,8 +17,10 @@ Groovy 提供了大量的辅助方法用于 IO 处理。你可以使用标准的
 
 下面章节将主要介绍这些辅助方法使用的范例，但并不全面，如果需要了解更全面的内容，可以查看 `GDK API <http://groovy-lang.org/gdk.html>`_ .
 
+
+
 读取文件
-~~~~~~~~
+^^^^^^^^
 
 第一个实例，看看如何打印出文件中的每行内容：
 
@@ -94,7 +96,7 @@ Groovy 让这一切变的如此简单：
 
 
 写文件
-~~~~~~~~~~
+^^^^^^^^
 
 当然在一些情况下，我们不仅仅要读文件，也需要来写文件。
 我们有一个选择就是使用 Writer：
@@ -138,7 +140,7 @@ Groovy 让这一切变的如此简单：
 	}
 
 遍历文件树
-~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^
 
 在脚本中，遍历文件树，找到指定的文件并处理是比较常见的任务。Groovy 提供了多种方法进行处理。
 
@@ -193,7 +195,7 @@ Groovy 让这一切变的如此简单：
 <2>	否则打印文件名，继续遍历
 
 Data & objects
-~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 在 JAVA 中通常使用 java.io.DataOutputStream & java.io.DataInputStream 来做对象的序列化与反序列化。
 在 Groovy 中的使用将更加简单。
@@ -234,7 +236,7 @@ Data & objects
 
 
 执行外部进程
-~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^
 前面章节描述了 Groovy 中文件，流，reader的处理方式。然而对于系统管理员或开发人员，他们通常都需要与系统相关进程进行交互。
 Groovy 也提供了一种简单的方式来执行命令行进程。可以简单的使用一行字符串，然后调用 `exxcute()` 方法来执行。
 例如：
@@ -354,7 +356,7 @@ Groovy 提供各种集合类型，包括 `lists <http://www.groovy-lang.org/groo
 其中大部份都是以 Java 集合类型为基础，并添加了一些附加方法在 `Groovy 开发包 <http://www.groovy-lang.org/gdk.html>`_ 中。
 
 Lists
-~~~~~~~~~~
+^^^^^^^^
 
 List literals
 ^^^^^^^^^^^^^^
@@ -734,7 +736,7 @@ Maps
 -----------------
 
 Map literals
-~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^
 在 Groovy 中可以通过语法 ``[:]`` 创建 ``map``:
 
 .. code-block:: groovy
@@ -784,7 +786,7 @@ Map 中可以通过 clone 方法获取一个新的拷贝:
 上面例子是关于 map 的浅拷贝。
 
 Map property notation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^
 Maps 可以像 beans 那样通过属性访问符，获取或设置属性值，只要 key 为 map 中有效字符：
 
 .. code-block:: groovy
@@ -824,7 +826,7 @@ Maps 可以像 beans 那样通过属性访问符，获取或设置属性值，�
 
 
 maps 上的迭代
-~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^
 在 Groovy 开发包中，惯用的迭代方法为 ``each`` 和 ``eachWithIndex``。
 值得注意的是，map 创建是有序的，如果在 map 上使用的迭代，其返回的实体顺序与加入时顺序一致。
 
@@ -858,7 +860,7 @@ maps 上的迭代
 
 
 操作 Map
-~~~~~~~~
+^^^^^^^^
 
 .添加／删除元素
 ^^^^^^^^^^^^^
@@ -989,7 +991,7 @@ The Groovy development kit contains filtering, searching and collecting methods 
 
 
 Ranges
-~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^
 
 ``Ranges`` 允许你创建连续值的列表对象。Ranges 可以像 List 一样使用，Range 继承 ``java.util.List``。
 ``Ranges`` 使用 ``..`` 定义闭区间。
@@ -1068,10 +1070,11 @@ Ranges 可以在 ``switch`` 中使用：
 
 
 集合语法增强
-~~~~~~~~~~~~~
+^^^^^^^^^^^^^
+
 
 GPath support
-^^^^^^^^^^^^^^^
+""""""""""""""""""""""""""
 属性符号对 lists 和 maps 的支持， Groovy 提供了语法糖用于处理嵌套的集合对象，可参考下面例子：
 
 .. code-block:: groovy
@@ -1087,7 +1090,7 @@ GPath support
 	assert listOfMaps.a == [11,21]
 
 Spread operator
-^^^^^^^^^^^^^^^^^
+""""""""""""""""""""""""""""""
 
 ``Spread operator`` 被用于集合内部的集合操作。这种语法糖可以避免使用 `putAll` ，有利于在单行内代码实现。
 
@@ -1110,8 +1113,9 @@ Spread operator
 	        [["e": 100, "b": 20, "c": 30, "a": 10], 4, 5, 6]
 
 
+
 The star-dot `*.' operator
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+""""""""""""""""""""""""""""""
 
 `*.` 操作符用于集合上所有元素调用方法或属性：
 
@@ -1128,7 +1132,8 @@ The star-dot `*.' operator
 
 
 下标操作符用于切片
-^^^^^^^^^^^^^^^
+""""""""""""""""""""
+
 你可以使用下标表达式在 lists，maps，arrays 上进行索引定位。
 字符串被看作一种特殊的集合：
 
@@ -1187,7 +1192,7 @@ The star-dot `*.' operator
 	assert name == "eci"
 
 增强集合方法
-~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^
 
 对于 `lists <http://www.groovy-lang.org/groovy-dev-kit.html#Collections-Lists>`_ , `maps <http://www.groovy-lang.org/groovy-dev-kit.html#Collections-Maps>`_ 和 `ranges <http://www.groovy-lang.org/groovy-dev-kit.html#Collections-Ranges>`_ ， Groovy 提供了大量扩展方法用于过滤，收集，分组以及计算等等，其可以在自身上执行并且更容易使用迭代处理。
 
@@ -1204,7 +1209,7 @@ Handy utilities (工具集)
 -------------------------
 
 ConfigSlurper
-~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^
 
 `ConfigSlurper` 是用于读取从 Groovy script 中读取配置信息。类似于 Java 中的 ``*.properties`` 文件， ``ConfigSlurper`` 中可以使用点符号。它也可以在闭包范围内定义内容以及任何的对象类型。
 
@@ -1342,7 +1347,7 @@ ConfigSlurper
 	assert expando.say('Hi') == 'John says: Hi'
 
 监听 list, map and set
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^
 Groovy 中自带 lists, map, sets 的观察器。这些集合对象，在添加，删除，或修改元素时，均为触发 ``java.beans.PropertyChangeEvent`` 事件。
 
 需要注意的是，其不仅仅是发送信号，还会将留存属性值的历史变化。
