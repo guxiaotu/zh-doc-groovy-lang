@@ -477,10 +477,12 @@ DelegatesTo modes
 ^^^^^^^^^^^^^^^^^
 
 
+
+
 @DelegatesTo supports multiple modes that we will describe with examples in this section.
 
-Simple delegation
-"""""""""""""""""
+**Simple delegation**
+
 
 In this mode, the only mandatory parameter is the value which says to which class we delegate calls. Nothing more. We’re telling the compiler that the type of the delegate will always be of the type documented by @DelegatesTo (note that it can be a subclass, but if it is, the methods defined by the subclass will not be visible to the type checker).
 
@@ -489,8 +491,8 @@ void body(@DelegatesTo(BodySpec) Closure cl) {
 }
 
 
-Delegation strategy
-"""""""""""""""""""
+**Delegation strategy**
+
 
 In this mode, you must specify both the delegate class and a delegation strategy. This must be used if the closure will not be called with the default delegation strategy, which is Closure.OWNER_FIRST.
 
