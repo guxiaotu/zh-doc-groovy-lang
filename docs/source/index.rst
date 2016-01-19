@@ -6,7 +6,7 @@
 欢迎阅读 Groovy 文档
 ===================================
 
-文档内容原文：http://www.groovy-lang.org/documentation.html
+原文：http://www.groovy-lang.org/documentation.html
 
 
 .. toctree::
