@@ -192,9 +192,13 @@ MockFor and StubFor
 
 
 <1> a new stub is created by a new instance of StubFor
+
 <2> the with method is used for delegating all calls inside the closure to the StubFor instance
+
 <3> a Closure is passed to use which enables the stubbing functionality
+
 <4> a call to verify (optional) checks whether the number of method calls is as expected
+
 MockFor and StubFor can not be used to test statically compiled classes e.g for Java classes or Groovy classes that make use of @CompileStatic. To stub and/or mock these classes you can use Spock or one of the Java mocking libraries.
 
 Expando Meta-Class (EMC)
@@ -633,7 +637,9 @@ For example, the following @Grab dependencies have to be used to run Geb with th
 	}
 
 <1> A new Browser instance is created. In this case it uses the Selenium FirefoxDriver and sets the baseUrl.
+
 <2> go is used to navigate to an URL or relative URI
+
 <3> $ together with CSS selectors is used to access the username and password DOM fields.
 
 ``Browser`` 类中 ``drive`` 方法上代理了当前浏览器实例上的所有方法及属性。
@@ -654,8 +660,11 @@ For example, the following @Grab dependencies have to be used to run Geb with th
 	}
 
 <1> Browser#go takes a relative or absolute link and calls the page.
+
 <2> Browser#$ is used to access DOM content. Any CSS selectors supported by the underlying Selenium drivers are allowed
+
 <3> click is used to click a button.
+
 <4> $ is used to get the first link out of the searchResult block
 
 上面例子展示了使用 Junit4 基于 ``geb.junit4.GebTest`` web 测试用例。
