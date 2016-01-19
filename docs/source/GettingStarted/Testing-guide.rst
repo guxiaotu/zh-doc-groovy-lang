@@ -615,42 +615,53 @@ For example, the following @Grab dependencies have to be used to run Geb with th
 	    @Grab("org.seleniumhq.selenium:selenium-firefox-driver:2.26.0"),
 	    @Grab("org.seleniumhq.selenium:selenium-support:2.26.0")
 	])
-	
-The central class in Geb is the geb.Browser class. As its name implies it is used to browse pages and access DOM elements:
 
-def browser = new Browser(driver: new FirefoxDriver(), baseUrl: 'http://myhost:8080/myapp')  
-browser.drive {
-    go "/login"                        
+核心类是 ``geb.Browser``. 根据名字可以知道通过浏览器访问 ``DOM`` 元素。	
 
-    $("#username").text = 'John'       
-    $("#password").text = 'Doe'
+.. code-block:: groovy
 
-    $("#loginButton").click()
+	def browser = new Browser(driver: new FirefoxDriver(), baseUrl: 'http://myhost:8080/myapp')                                        // <1> 
+	browser.drive {
+	    go "/login"                        	// <2>
 
-    assert title == "My Application - Dashboard"
-}
-A new Browser instance is created. In this case it uses the Selenium FirefoxDriver and sets the baseUrl.
-go is used to navigate to an URL or relative URI
-$ together with CSS selectors is used to access the username and password DOM fields.
-The Browser class comes with a drive method that delegates all method/property calls to the current browser instance. The Browser configuration must not be done inline, it can also be externalized in a GebConfig.groovy configuration file for example. In practice, the usage of the Browser class is mostly hidden by Geb test base classes. They delegate all missing properties and method calls to the current browser instance that exists in the background:
+	    $("#username").text = 'John'        // <3>
+	    $("#password").text = 'Doe'         
 
-class SearchTests extends geb.junit4.GebTest {
+	    $("#loginButton").click()
 
-    @Test
-    void executeSeach() {
-        go 'http://somehost/mayapp/search'              
-        $('#searchField').text = 'John Doe'             
-        $('#searchButton').click()                      
+	    assert title == "My Application - Dashboard"
+	}
 
-        assert $('.searchResult a').first().text() == 'Mr. John Doe' 
-    }
-}
-Browser#go takes a relative or absolute link and calls the page.
-Browser#$ is used to access DOM content. Any CSS selectors supported by the underlying Selenium drivers are allowed
-click is used to click a button.
-$ is used to get the first link out of the searchResult block
-The example above shows a simple Geb web test with the JUnit 4 base class geb.junit4.GebTest. Note that in this case the Browser configuration is externalized. GebTest delegates methods like go and $ to the underlying browser instance.
+<1> A new Browser instance is created. In this case it uses the Selenium FirefoxDriver and sets the baseUrl.
+<2> go is used to navigate to an URL or relative URI
+<3> $ together with CSS selectors is used to access the username and password DOM fields.
 
-5.2. More Geb
+``Browser`` 类中 ``drive`` 方法上代理了当前浏览器实例上的所有方法及属性。
+在实际应用中，``Browser`` 类基本上都会隐藏于 ``Geb`` 的测试基类中。在当前浏览器实例上调用不存在的方法都将通过其进行代理。
 
-In the previous section we only scratched the surface of the available Geb features. More information on Geb can be found at the project homepage.
+.. code-block:: groovy
+
+	class SearchTests extends geb.junit4.GebTest {
+
+	    @Test
+	    void executeSeach() {
+	        go 'http://somehost/mayapp/search'      							// <1>        
+	        $('#searchField').text = 'John Doe'             					// <2>
+	        $('#searchButton').click()                      					// <3>
+
+	        assert $('.searchResult a').first().text() == 'Mr. John Doe'        // <4>
+	    }
+	}
+
+<1> Browser#go takes a relative or absolute link and calls the page.
+<2> Browser#$ is used to access DOM content. Any CSS selectors supported by the underlying Selenium drivers are allowed
+<3> click is used to click a button.
+<4> $ is used to get the first link out of the searchResult block
+
+上面例子展示了使用 Junit4 基于 ``geb.junit4.GebTest`` web 测试用例。
+可以看到起浏览器配置是在外部。``GebTest`` 中基于底层的浏览器实例，代理 ``go`` 和 ``$`` 方法。
+
+More Geb
+--------
+
+前面章节我们只是轻描淡写的描述了 ``Geb`` 的特性。更多信息可以查看其 `主页 <http://gebish.org/>`_ 。 
