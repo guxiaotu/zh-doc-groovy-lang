@@ -363,8 +363,8 @@ new Greeter()
 	        greet
 	    }
 	}
-
 	new Greeter()
+	
 
 打印内容将会变化：	
 
