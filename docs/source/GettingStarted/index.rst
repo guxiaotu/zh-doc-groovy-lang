@@ -12,4 +12,5 @@
    Testing-guide
    Domain-Specific-Languages
    Integrating-Groovy-into-applications
+   Design-patterns-in-Groovy
    Style-guide

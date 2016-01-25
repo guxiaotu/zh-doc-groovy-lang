@@ -13,6 +13,7 @@
    :maxdepth: 2
 
    GettingStarted/index
+   Groovy-module-guides/index
    
 
 
