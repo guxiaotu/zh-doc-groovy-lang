@@ -3,7 +3,7 @@
 
 
 Command chains
-^^^^^^^^^^^^^^^^^
+------------------
 
 
 ``Groovy`` 允许在方法调用的参数周围省略括号。
@@ -168,7 +168,7 @@ Command chains
 
 
 Script base classes
--------------------
+------------------------
 
 The Script Class
 ^^^^^^^^^^^^^^^^
@@ -477,59 +477,79 @@ DelegatesTo modes
 ^^^^^^^^^^^^^^^^^
 
 
-
-
 @DelegatesTo supports multiple modes that we will describe with examples in this section.
 
-**Simple delegation**
+
+Simple delegation
+""""""""""""""""""""""
 
 
 In this mode, the only mandatory parameter is the value which says to which class we delegate calls. Nothing more. We’re telling the compiler that the type of the delegate will always be of the type documented by @DelegatesTo (note that it can be a subclass, but if it is, the methods defined by the subclass will not be visible to the type checker).
 
-void body(@DelegatesTo(BodySpec) Closure cl) {
-    // ...
-}
+.. code-block:: groovy
+
+	void body(@DelegatesTo(BodySpec) Closure cl) {
+	    // ...
+	}
 
 
-**Delegation strategy**
-
+Delegation strategy
+"""""""""""""""""""""
 
 In this mode, you must specify both the delegate class and a delegation strategy. This must be used if the closure will not be called with the default delegation strategy, which is Closure.OWNER_FIRST.
 
-void body(@DelegatesTo(strategy=Closure.DELEGATE_ONLY, value=BodySpec) Closure cl) {
-    // ...
-}
-5.3.3. Delegate to parameter
+.. code-block:: groovy
+
+	void body(@DelegatesTo(strategy=Closure.DELEGATE_ONLY, value=BodySpec) Closure cl) {
+	    // ...
+	}
+
+
+Delegate to parameter
+""""""""""""""""""""""
+
 
 In this variant, we will tell the compiler that we are delegating to another parameter of the method. Take the following code:
 
-def exec(Object target, Closure code) {
-   def clone = code.rehydrate(target, this, this)
-   clone()
-}
+.. code-block:: groovy
+
+	def exec(Object target, Closure code) {
+	   def clone = code.rehydrate(target, this, this)
+	   clone()
+	}
+
 Here, the delegate which will be used is not created inside the exec method. In fact, we take an argument of the method and delegate to it. Usage may look like this:
 
-def email = new Email()
-exec(email) {
-   from '...'
-   to '...'
-   send()
-}
+.. code-block:: groovy
+
+	def email = new Email()
+	exec(email) {
+	   from '...'
+	   to '...'
+	   send()
+	}
+
 Each of the method calls are delegated to the email parameter. This is a widely used pattern which is also supported by @DelegatesTo using a companion annotation:
 
-def exec(@DelegatesTo.Target Object target, @DelegatesTo Closure code) {
-   def clone = code.rehydrate(target, this, this)
-   clone()
-}
+.. code-block:: groovy
+
+	def exec(@DelegatesTo.Target Object target, @DelegatesTo Closure code) {
+	   def clone = code.rehydrate(target, this, this)
+	   clone()
+	}
+
 A closure is annotated with @DelegatesTo, but this time, without specifying any class. Instead, we’re annotating another parameter with @DelegatesTo.Target. The type of the delegate is then determined at compile time. One could think that we are using the parameter type, which in this case is Object but this is not true. Take this code:
 
-class Greeter {
-   void sayHello() { println 'Hello' }
-}
-def greeter = new Greeter()
-exec(greeter) {
-   sayHello()
-}
+.. code-block:: groovy
+
+	class Greeter {
+	   void sayHello() { println 'Hello' }
+	}
+	def greeter = new Greeter()
+	exec(greeter) {
+	   sayHello()
+	}
+
 Remember that this works out of the box without having to annotate with @DelegatesTo. However, to make the IDE aware of the delegate type, or the type checker aware of it, we need to add @DelegatesTo. And in this case, it will now that the Greeter variable is of type Greeter, so it will not report errors on the sayHello method even if the exec method doesn’t explicitly define the target as of type Greeter. This is a very powerful feature, because it prevents you from writing multiple versions of the same exec method for different receiver types!
 
 In this mode, the @DelegatesTo annotation also supports the strategy parameter that we’ve described upper.

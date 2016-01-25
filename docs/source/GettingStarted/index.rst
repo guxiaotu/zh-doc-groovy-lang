@@ -6,9 +6,10 @@
    :numbered:
 
    install-groovy
+   Differences-with-Java
    The-Groovy-Development-Kit
-   Integrating-Groovy-into-applications
    The-Grape-dependency-manager
    Testing-guide
    Domain-Specific-Languages
+   Integrating-Groovy-into-applications
    Style-guide
