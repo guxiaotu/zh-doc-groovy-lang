@@ -307,7 +307,7 @@ Because Groovy uses Objects for everything, it autowraps references to primitive
 <2> Groovy 中的调用路径，其中所有原始类型引用会使用其包装类。
 （This is the method Groovy actually calls, since all primitive references use their wrapper class.）
 
-11. Behaviour of ==
+
 Behaviour of ==
 ---------------
 
