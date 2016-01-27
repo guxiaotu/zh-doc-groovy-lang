@@ -231,7 +231,22 @@ For example consider dynamic finders in GORM. These are implemented in terms of 
     }
 
 
-    Notice how, if we find a method to invoke, we then dynamically register a new method on the fly using ExpandoMetaClass. This is so that the next time the same method is called it is more efficient. This way of using methodMissing does not have the overhead of invokeMethod and is not expensive from the second call on.
 
-1.4. propertyMissing
+这里需要注意，如果我们找到调用的方法，然后将其注册到 ``ExpandoMetaClass`` , 在下次再次调用此方法，将会更加高效。
+这是使用 ``methodMissing`` 不会有调用 ``invokeMethod`` 的开销，在第二次调用此方法，就和原生方法一样。
 
+propertyMissing
+^^^^^^^^^^^^^^^
+
+当访问的属性不存在时，会调用 ``propertyMissing``。
+``propertyMissing``  方法只有一个字符串类型的入参，其参数为调用的属性名称。
+
+.. code-block:: groovy
+
+    class Foo {
+       def propertyMissing(String name) { name }
+    }
+
+    assert new Foo().boo == 'boo'
+
+在运行时，当无法找到属性对应的 getter 方法的情况下，才能调用 ``propertyMissing(String)`` 方法。
