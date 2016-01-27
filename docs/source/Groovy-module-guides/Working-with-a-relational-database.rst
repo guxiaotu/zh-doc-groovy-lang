@@ -552,7 +552,8 @@ Creating a stored function
 	  )
 	"""
 
-We can use a SQL CALL statement to invoke the function using Groovy’s normal SQL retrieval methods. Here is an example using eachRow.
+我们可以使用 ``Groovy’s`` 普通的查询方法来调用 ``CALL`` 语句。
+这里是 ``eachRow`` 例子：
 
 Creating a stored procedure or function
 
@@ -564,7 +565,7 @@ Creating a stored procedure or function
 	}
 	assert result == ['DK', 'JS', 'GL']
 
-Here is the code for creating another stored function, this one taking the lastname as a parameter:
+这下面的代码创建另一个存储函数，并使用 ``lastname`` 作为参数：
 
 Creating a stored function with a parameter
 

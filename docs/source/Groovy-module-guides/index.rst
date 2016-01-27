@@ -8,3 +8,4 @@ Groovy 模块指南
   
    Parsing-and-producing-JSON
    Working-with-a-relational-database
+   Processing-XML
