@@ -250,3 +250,31 @@ propertyMissing
     assert new Foo().boo == 'boo'
 
 在运行时，当无法找到属性对应的 getter 方法的情况下，才能调用 ``propertyMissing(String)`` 方法。
+
+
+对于 setter 方法， 第二个 ``propertyMissing`` 方法定义增加了一个 ``value`` 参数：
+
+.. code-block:: language
+
+    class Foo {
+       def storage = [:]
+       def propertyMissing(String name, value) { storage[name] = value }
+       def propertyMissing(String name) { storage[name] }
+    }
+
+    def f = new Foo()
+    f.foo = "bar"
+
+    assert f.foo == "bar"
+
+
+相比较于 ``methodMissing`` , 这是最好方式在运行时动态注册属性并能提升整体的查找性能。
+
+``methodMissing`` 和 ``propertyMissing``  处理的方法和属性，都可以通过 ``ExpandoMetaClass`` 添加注册。
+
+
+1.5. GroovyInterceptable
+
+The groovy.lang.GroovyInterceptable interface is marker interface that extends GroovyObject and is used to notify the Groovy runtime that all methods should be intercepted through the method dispatcher mechanism of the Groovy runtime.
+
+
