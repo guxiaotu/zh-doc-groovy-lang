@@ -518,12 +518,226 @@ ExpandoMetaClass
 Groovy 对每个 ``java.lang.Class`` 都提供了一个 ``metaClass`` 特殊属性，其返回一个 ``ExpandoMetaClass`` 实例的引用。
 在这实例上可以添加方法或修改已存在的方法内容。
 
-By default ExpandoMetaClass doesn’t do inheritance. To enable this you must call ExpandoMetaClass#enableGlobally() before your app starts such as in the main method or servlet bootstrap.
-The following sections go into detail on how ExpandoMetaClass can be used in various scenarios.
 
-.. role:: red
+接下来介绍 ``ExpandoMetaClass``  在各种场景中的使用。
 
-:red:Methods
+
+Methods
+++++++++++++
+
+
+通过调用 ``metaClass`` 属性来获取 ``ExpandoMetaClass`` ，使用 ``<<`` 或 ``=``  操作符添加方法。
+Note that the left shift operator is used to append a new method. 
+注意 ``<<``  用于添加新方法，如果这个方法已经存在，将会抛出异常。如果你想替换方法，可以使用 ``=`` 
+
+这些操作符向 metaClass 的不存在的属性传递 闭包代码块的实例。
+
+.. code-block:: groovy
+
+    class Book {
+       String title
+    }
+
+    Book.metaClass.titleInUpperCase << {-> title.toUpperCase() }
+
+    def b = new Book(title:"The Stand")
+
+    assert "THE STAND" == b.titleInUpperCase()
+
+
+上面例子中就是通过通过访问 ``metaClass`` 并使用 ``<<`` 或 ``=`` 操作符, 赋值闭包代码块的方式向类中添加新增方法。
+无参数方法可以使用 ``{-> ...}`` 方式添加。
+
+
+Properties
+++++++++++++++
+
+``ExpandoMetaClass`` 支持两种方式添加，重载属性。
+
+第一种，在 ``metaClass`` 上直接声明一个属性并赋值：
+
+.. code-block:: groovy
+
+    class Book {
+       String title
+    }
+
+    Book.metaClass.author = "Stephen King"
+    def b = new Book()
+
+    assert "Stephen King" == b.author
+
+另一种方式，添加属性对应的 getter 或 setter 方法：
+
+.. code-block:: groovy
+
+    class Book {
+     String title
+    }
+    Book.metaClass.getAuthor << {-> "Stephen King" }
+
+    def b = new Book()
+
+    assert "Stephen King" == b.author
+
+
+上面代码中属性通过闭包指定，并且为只读。
+这里可以添加 setter 方法来存储属性值，以便后续使用。可以看看下面代码：
+
+.. code-block:: groovy
+
+    class Book {
+      String title
+    }
+
+    def properties = Collections.synchronizedMap([:])
+
+    Book.metaClass.setAuthor = { String value ->
+       properties[System.identityHashCode(delegate) + "author"] = value
+    }
+    Book.metaClass.getAuthor = {->
+       properties[System.identityHashCode(delegate) + "author"]
+    }
+
+例如在 Servlet 容器中将当前执行的 request 中的值存储到 request  attributes 中。
+Grails 中也有相同的应用。
+
+Constructors
+++++++++++++
+
+构造器添加使用特殊属性 ``constructor`` 。
+同样适用 ``<<`` 或 ``=`` 来传递闭包代码块。在代码执行时，闭包中定义的参数列表就为构造器的参数列表。
+
+.. code-block:: groovy
+
+    class Book {
+        String title
+    }
+    Book.metaClass.constructor << { String title -> new Book(title:title) }
+
+    def book = new Book('Groovy in Action - 2nd Edition')
+    assert book.title == 'Groovy in Action - 2nd Edition'
+
+需要当心的是在添加构造器时，会比较容易出现栈溢出的问题。
+
+
+Static Methods
+++++++++++++++
+
+
+静态方法的加入也使用同样的技术，但需要在方法名称之前添加 ``static`` 限定符。
+
+.. code-block:: groovy
+
+    class Book {
+       String title
+    }
+
+    Book.metaClass.static.create << { String title -> new Book(title:title) }
+
+    def b = Book.create("The Stand")
+
+
+Borrowing Methods
++++++++++++++++++
+
+在 ``ExpandoMetaClass`` 中可以使用方法指针语法，向其他类中借取方法。
+
+.. code-block:: groovy
+
+    class Person {
+        String name
+    }
+    class MortgageLender {
+       def borrowMoney() {
+          "buy house"
+       }
+    }
+
+    def lender = new MortgageLender()
+
+    Person.metaClass.buyHouse = lender.&borrowMoney
+
+    def p = new Person()
+
+    assert "buy house" == p.buyHouse()
+
+
+Dynamic Method Names
+++++++++++++++++++++
+
+Groovy 中可以使用 String 作为属性名称，同样可以允许你在运行时动态的创建方法或属性名称。
+使用动态命名方法，直接使用了语言中引用属性名称作为字符串的特性。
+
+.. code-block:: groovy
+
+    class Person {
+       String name = "Fred"
+    }
+
+    def methodName = "Bob"
+
+    Person.metaClass."changeNameTo${methodName}" = {-> delegate.name = "Bob" }
+
+    def p = new Person()
+
+    assert "Fred" == p.name
+
+    p.changeNameToBob()
+
+    assert "Bob" == p.name
+
+静态方法及属性同样适用这种概念。
+
+Grails 中可以发现动态方法命名的应用。
+动态编码器这一概念，也是通过使用动态方法命名来实现。
+
+*HTMLCodec Class*
+
+.. code-block:: groovy
+
+    class HTMLCodec {
+        static encode = { theTarget ->
+            HtmlUtils.htmlEscape(theTarget.toString())
+        }
+
+        static decode = { theTarget ->
+            HtmlUtils.htmlUnescape(theTarget.toString())
+        }
+    }
+
+上面例子是一个编码器的实现。
+Grails 中各种编码器都定义在各自独立的类中。
+在运行环境的 ``classpath`` 中将有多个编译器类。
+应用启动时将  ``encodeXXX`` 和 ``decodeXXX`` 方法添加到特定的 meta-classes 中，其中 ``XXX`` 就是编码器类名
+的第一部分（例如： encodeHTML）。
+这种处理机制将在下面的伪代码中展示：
+
+ .. code-block:: groovy
+ 
+     def codecs = classes.findAll { it.name.endsWith('Codec') }
+
+    codecs.each { codec ->
+        Object.metaClass."encodeAs${codec.name-'Codec'}" = { codec.newInstance().encode(delegate) }
+        Object.metaClass."decodeFrom${codec.name-'Codec'}" = { codec.newInstance().decode(delegate) }
+    }
+
+
+    def html = '<html><body>hello</body></html>'
+
+    assert '<html><body>hello</body></html>' == html.encodeAsHTML()
+
+
+Runtime Discovery
++++++++++++++++++
+
+
+
+
+
+
+
+ 
 
 
 
