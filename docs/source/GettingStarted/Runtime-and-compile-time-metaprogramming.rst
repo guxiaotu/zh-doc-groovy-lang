@@ -273,8 +273,265 @@ propertyMissing
 ``methodMissing`` 和 ``propertyMissing``  处理的方法和属性，都可以通过 ``ExpandoMetaClass`` 添加注册。
 
 
-1.5. GroovyInterceptable
+GroovyInterceptable
+^^^^^^^^^^^^^^^^^^^
 
-The groovy.lang.GroovyInterceptable interface is marker interface that extends GroovyObject and is used to notify the Groovy runtime that all methods should be intercepted through the method dispatcher mechanism of the Groovy runtime.
+``groovy.lang.GroovyInterceptable`` 是继承于 ``GroovyObject``  的关键接口，实现此接口的类上的方法调用都将经过运行
+时方法路由机制拦截。
+
+.. code-block:: groovy
+
+    package groovy.lang;
+
+    public interface GroovyInterceptable extends GroovyObject {
+    }
+
+当 Groovy 对象实现 ``GroovyInterceptable`` 接口，其对象上的任何方法调用都将通过 ``invokeMethod()``  拦截器。
+可以参考下面的例子：
+
+.. code-block:: groovy
+
+    class Interception implements GroovyInterceptable {
+
+        def definedMethod() { }
+
+        def invokeMethod(String name, Object args) {
+            'invokedMethod'
+        }
+    }
+
+下面代码中会看到，无论被调用方式是否存在，返回值都是相同的：
+
+.. code-block:: groovy
+
+    class InterceptableTest extends GroovyTestCase {
+
+        void testCheckInterception() {
+            def interception = new Interception()
+
+            assert interception.definedMethod() == 'invokedMethod'
+            assert interception.someMethod() == 'invokedMethod'
+        }
+    }
+
+
+
+需要注意，我们不能使用像 ``println``  这样的方法，是由于其已经被注入到所有 groovy 对象中，也将会被拦截。
+
+If we want to intercept all methods call but do not want to implement the GroovyInterceptable interface we can implement invokeMethod() on an object’s MetaClass. This approach works for both POGOs and POJOs, as shown by this example:
+如果你想拦截所有方法，但是有不想实现 ``GroovyInterceptable`` 接口，可以通过在对象的 ``MetaClass`` 方法上实现 ``invokeMethod`` 方法来达到同样的效果。
+这种方法对于 ``POGOs`` 和 ``POJOs``   都适用，看看下面的例子：
+
+.. code-block:: groovy
+
+    class InterceptionThroughMetaClassTest extends GroovyTestCase {
+
+        void testPOJOMetaClassInterception() {
+            String invoking = 'ha'
+            invoking.metaClass.invokeMethod = { String name, Object args ->
+                'invoked'
+            }
+
+            assert invoking.length() == 'invoked'
+            assert invoking.someMethod() == 'invoked'
+        }
+
+        void testPOGOMetaClassInterception() {
+            Entity entity = new Entity('Hello')
+            entity.metaClass.invokeMethod = { String name, Object args ->
+                'invoked'
+            }
+
+            assert entity.build(new Object()) == 'invoked'
+            assert entity.someMethod() == 'invoked'
+        }
+    }
+
+更多有关 MetaClass 的内容可以查看对应`章节 <http://www.groovy-lang.org/metaprogramming.html#_metaclasses>`_ 。
+
+Categories
+^^^^^^^^^^^^^^^^
+
+当我们对于无法控制的类，需要增加附加方法时，分类这种方式非常有用。
+对于这种特性，``Groovy``  的实现是借鉴于 ``Objective-C`` ，并称其为分类。
+
+分类通过称为 ``category`` 类来实现。``category`` 类中需要根据预定规则来定义扩展方法。
+
+这里有一些分类用于扩展相应类的功能，这种方式可以使其在 Groovy 中发挥更强的作用：
+
+- `groovy.time.TimeCategory <http://docs.groovy-lang.org/2.4.5/html/gapi/index.html?groovy/time/TimeCategory.html>`_
+
+- `groovy.servlet.ServletCategory <http://docs.groovy-lang.org/2.4.5/html/gapi/index.html?groovy/servlet/ServletCategory.html>`_
+
+- `groovy.xml.dom.DOMCategory <http://docs.groovy-lang.org/2.4.5/html/gapi/index.html?groovy/xml/dom/DOMCategory.html>`_
+  
+
+``Category`` 类在默认情况下并不开启。当使用 ``category``  中定义的方法时，需要使用 GDK 中提供的 ``use``  方法。
+
+.. code-block:: groovy
+
+    use(TimeCategory)  {
+        println 1.minute.from.now           // <1>
+        println 10.hours.ago
+
+        def someDate = new Date()         // <2>
+        println someDate - 3.months
+    }
+
+<1> TimeCategory adds methods to Integer
+<2> TimeCategory adds methods to Date
+
+``use`` 方法第一个参数为具体定义 ``category`` 类，第二个参数为闭包代码块。
+在闭包块中可以访问 ``category`` 类中的方法。
+正如上面例子中看到的， JDK 中 ``java.lang.Integer`` 或 ``java.util.Date``  类也可以通过分类中定义的方法来增强。
+
+分类也可以进行一定的封装，像下面这样：
+
+.. code-block:: groovy
+
+    class JPACategory{
+      // Let's enhance JPA EntityManager without getting into the JSR committee
+      static void persistAll(EntityManager em , Object[] entities) { //add an interface to save all
+        entities?.each { em.persist(it) }
+      }
+    }
+
+    def transactionContext = {
+      EntityManager em, Closure c ->
+      def tx = em.transaction
+      try {
+        tx.begin()
+        use(JPACategory) {
+          c()
+        }
+        tx.commit()
+      } catch (e) {
+        tx.rollback()
+      } finally {
+        //cleanup your resource here
+      }
+    }
+
+    // user code, they always forget to close resource in exception, some even forget to commit, let's not rely on them.
+    EntityManager em; //probably injected
+    transactionContext (em) {
+     em.persistAll(obj1, obj2, obj3)
+     // let's do some logics here to make the example sensible
+     em.persistAll(obj2, obj4, obj6)
+    }
+
+
+当我们看到  ``groovy.time.TimeCategory``  中所定义的方法都声明为 static 。
+这种声明方式是通过  ``category``  方式在 use 代码块中调用扩展方法的必要条件。
+
+.. code-block:: groovy
+
+    public class TimeCategory {
+
+    public static Date plus(final Date date, final BaseDuration duration) {
+        return duration.plus(date);
+    }
+
+    public static Date minus(final Date date, final BaseDuration duration) {
+        final Calendar cal = Calendar.getInstance();
+
+        cal.setTime(date);
+        cal.add(Calendar.YEAR, -duration.getYears());
+        cal.add(Calendar.MONTH, -duration.getMonths());
+        cal.add(Calendar.DAY_OF_YEAR, -duration.getDays());
+        cal.add(Calendar.HOUR_OF_DAY, -duration.getHours());
+        cal.add(Calendar.MINUTE, -duration.getMinutes());
+        cal.add(Calendar.SECOND, -duration.getSeconds());
+        cal.add(Calendar.MILLISECOND, -duration.getMillis());
+
+        return cal.getTime();
+    }
+
+    // ...
+
+另一个必要条件是静态方法中的第一个参数类型需要与将要使用的类型一致。
+其他参数为方法调用中的正常参数。
+
+由于参数及静态方法的约定，分类中方法的定义与普通方法比较起来，显得不太直观。
+ Groovy 可以通过 ``@Category`` 注解的方式，将经过注解的类在编译期转化为 ``category`` 类型。
+
+.. code-block:: groovy
+
+    class Distance {
+        def number
+        String toString() { "${number}m" }
+    }
+
+    @Category(Number)
+    class NumberCategory {
+        Distance getMeters() {
+            new Distance(number: this)
+        }
+    }
+
+    use (NumberCategory)  {
+        assert 42.meters.toString() == '42m'
+    }
+
+
+使用 ``@Category`` 的优势是在使用实例方法时，可以不需要将第一个参数声明为目标类型。
+其目标类型的设置通过注解方式替代。
+
+这里 `编译时元编程 <http://www.groovy-lang.org/metaprogramming.html#xform-Category>`_  章节将介绍 ``@Category`` 的其他用法。
+
+Metaclasses
+^^^^^^^^^^^^^^^^^^
+待续
+(TBD)
+
+Custom metaclasses
+""""""""""""""""""""""""""""
+
+待续
+(TBD)
+
+Delegating metaClass
+++++++++++++++++++++
+
+待续
+
+Magic package(Maksym Stavytskyi)
+++++++++++++++++++++++++++++++++++++++++++++
+
+待续
+(TBD)
+
+Per instance metaclass
+""""""""""""""""""""""""""""""""""""""
+
+待续
+(TBD)
+
+ExpandoMetaClass
+"""""""""""""""""""""""""""""
+
+``Groovy`` 中自带特殊的 ``MetaClass``  称为 ``ExpandoMetaClass`` 。
+特殊之处就在于，可以通过使用闭包方式动态的添加或改变方法，构造器，属性以及静态方法。
+
+这些动态的处理，对于在 `Test guide <http://docs.groovy-lang.org/latest/html/documentation/core-testing-guide.html#testing_guide_emc>`_  章节中看到的 ``moking`` 和 ``stubbing`` 应用场景非常有用。
+
+Groovy 对每个 ``java.lang.Class`` 都提供了一个 ``metaClass`` 特殊属性，其返回一个 ``ExpandoMetaClass`` 实例的引用。
+在这实例上可以添加方法或修改已存在的方法内容。
+
+By default ExpandoMetaClass doesn’t do inheritance. To enable this you must call ExpandoMetaClass#enableGlobally() before your app starts such as in the main method or servlet bootstrap.
+The following sections go into detail on how ExpandoMetaClass can be used in various scenarios.
+
+.. role:: red
+
+:red:Methods
+
+
+
+
+
+
+
+
+
 
 
