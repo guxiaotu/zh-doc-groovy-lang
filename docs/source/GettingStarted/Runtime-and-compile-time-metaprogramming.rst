@@ -1127,3 +1127,209 @@ The @EqualsAndHashCode AST transformation aims at generating equals and hashCode
 @groovy.transform.TupleConstructor
 ++++++++++++++++++++++++++++++++++
 
+The @TupleConstructor annotation aims at eliminating boilerplate code by generating constructors for you. A tuple constructor is created for each property, with default values (using the Java default values). For example, the following code will generate 3 constructors:
+``@TupleConstructor`` 注解通过生成构造函数消除样板代码。使用其属性创建元构造函数，如果不填写则使用默认值。
+例如，下面代码中生成的 3 个构造函数：
+
+.. code-block:: groovy
+
+
+    import groovy.transform.TupleConstructor
+
+    @TupleConstructor
+    class Person {
+        String firstName
+        String lastName
+    }
+
+    // traditional map-style constructor
+    def p1 = new Person(firstName: 'Jack', lastName: 'Nicholson')
+    // generated tuple constructor
+    def p2 = new Person('Jack', 'Nicholson')
+    // generated tuple constructor with default value for second property
+    def p3 = new Person('Jack')
+
+The first constructor is a no-arg constructor which allows the traditional map-style construction. 
+第一个构造函数是一个无参数构造函数，其使用习惯的 ``map-style`` 构造。
+It is worth noting that if the first property (or field) has type LinkedHashMap or if there is a single Map, AbstractMap or HashMap property (or field), then the map-style mapping is not available.
+这里值得一提的是，当第一个参数是 ``LinkedHashMap`` 类型，或只有唯一一个 ``Map`` ，``AbstractMap`` 或 ``HashMap`` 参数，那么 ``map-style`` 参数设置方式将会无效。
+
+这些构造函数生成，按照其参数定义顺序。根据其属性数量， Groovy 将生成相应的构造函数。
+
+``@TupleConstructor`` 接受多种配置选择：
+
+（TBD）
+
+
+@groovy.transform.Canonical
++++++++++++++++++++++++++++
+
+``@Canonical`` 注解组合了 ``@ToString`` , ``@EqualsAndHashCode`` 和 ``@TupleConstructor`` 的功能。
+
+.. code-block:: groovy
+
+    import groovy.transform.Canonical
+
+    @Canonical
+    class Person {
+        String firstName
+        String lastName
+    }
+    def p1 = new Person(firstName: 'Jack', lastName: 'Nicholson')
+    assert p1.toString() == 'Person(Jack, Nicholson)' // Effect of @ToString
+
+    def p2 = new Person('Jack','Nicholson') // Effect of @TupleConstructor
+    assert p2.toString() == 'Person(Jack, Nicholson)'
+
+    assert p1==p2 // Effect of @EqualsAndHashCode
+    assert p1.hashCode()==p2.hashCode() // Effect of @EqualsAndHashCode
+
+
+使用 ``@Immutable`` 可以生成一个不可变类型。
+
+
+``@Canonical`` 接受多种配置选择：
+
+（TBD）
+
+
+@groovy.transform.InheritConstructors
++++++++++++++++++++++++++++++++++++++
+
+``@InheritConstructor`` 用于生成超类的构造方法。在重载异常类时将特别有用：
+
+.. code-block:: groovy
+
+    import groovy.transform.InheritConstructors
+
+    @InheritConstructors
+    class CustomException extends Exception {}
+
+    // all those are generated constructors
+    new CustomException()
+    new CustomException("A custom message")
+    new CustomException("A custom message", new RuntimeException())
+    new CustomException(new RuntimeException())
+
+    // Java 7 only
+    // new CustomException("A custom message", new RuntimeException(), false, true)
+
+``@InheritConstructor`` 接受多种配置选择：
+
+(TBD)
+
+
+@groovy.lang.Category
++++++++++++++++++++++
+
+``@Category``  用于简化 Groovy 分类的使用。原始的分类使用方式：
+
+.. code-block:: groovy
+
+
+    class TripleCategory {
+        public static Integer triple(Integer self) {
+            3*self
+        }
+    }
+    use (TripleCategory) {
+        assert 9 == 3.triple()
+    }
+
+
+@Category 转换，让你可以使用实例类型替代静态类型。
+这种方式移除方法的中用于指向接收对象的第一个参数。例如：
+
+.. code-block:: groovy
+
+    @Category(Integer)
+    class TripleCategory {
+        public Integer triple() { 3*this }
+    }
+    use (TripleCategory) {
+        assert 9 == 3.triple()
+    }
+
+Note that the mixed in class can be referenced using this instead. It’s also worth noting that using instance fields in a category class is inherently unsafe: categories are not stateful (like traits).
+
+
+@groovy.transform.IndexedProperty
++++++++++++++++++++++++++++++++++
+
+``@IndexedProperty`` 注解用于生成 ``list/array`` 类型中属性索引的 ``getters/setters``.
+如果你希望在 Java 中使用 ``Groovy`` 类，这就会特别有用。
+Groovy 中支持 ``GPath`` 访问属性，但是在 Java 是不支持的。@IndexedProperty 可以生成下面属性索引方法：
+
+.. code-block:: language
+
+    class SomeBean {
+        @IndexedProperty String[] someArray = new String[2]
+        @IndexedProperty List someList = []
+    }
+
+    def bean = new SomeBean()
+    bean.setSomeArray(0, 'value')
+    bean.setSomeList(0, 123)
+
+    assert bean.someArray[0] == 'value'
+    assert bean.someList == [123]
+
+
+
+
+@groovy.lang.Lazy
++++++++++++++++++
+
+@Lazy 用于延迟初始化属性。例如，接下来的代码：
+
+.. code-block:: groovy
+
+    class SomeBean {
+        @Lazy LinkedList myField
+    }
+
+
+将会生成下面代码：
+
+.. code-block:: groovy
+
+    List $myField
+    List getMyField() {
+        if ($myField!=null) { return $myField }
+        else {
+            $myField = new LinkedList()
+            return $myField
+        }
+    }
+
+
+初始化属性的默认值就是默认构造函数的声明类型。
+可以在属性右侧定义闭包方式来定义默认值，例如下面代码：
+
+.. code-block:: groovy
+
+    class SomeBean {
+        @Lazy LinkedList myField = { ['a','b','c']}()
+    }
+
+这里生成下面代码：
+
+.. code-block:: groovy
+
+    List $myField
+    List getMyField() {
+        if ($myField!=null) { return $myField }
+        else {
+            $myField = { ['a','b','c']}()
+            return $myField
+        }
+    }
+
+
+If the field is declared volatile then initialization will be synchronized using the double-checked locking pattern.
+如果属性声明为 ``volatile`` ，则在初始化时使用 `double-checked locking <http://en.wikipedia.org/wiki/Double-checked_locking>`_ 模式进行同步处理。
+
+使用 ``sofe=true`` 参数设置，这里的属性将为使用软引用，提供了一个简单的实现方式。
+在这种情况下，如果 ``GC`` 开始回收引用，初始化将在下次访问 field 时开始执行。
+
+
