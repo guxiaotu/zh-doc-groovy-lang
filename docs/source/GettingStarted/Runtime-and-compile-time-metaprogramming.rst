@@ -254,7 +254,7 @@ propertyMissing
 
 对于 setter 方法， 第二个 ``propertyMissing`` 方法定义增加了一个 ``value`` 参数：
 
-.. code-block:: language
+.. code-block:: groovy
 
     class Foo {
        def storage = [:]
@@ -731,23 +731,399 @@ Grails 中各种编码器都定义在各自独立的类中。
 Runtime Discovery
 +++++++++++++++++
 
+在方法执行时，了解存在的其他方法或属性是十分有用的。 当前版本中，``ExpandoMetaClass`` 提供一下方法用于此法：
+
+- getMetaMethod
+- hasMetaMethod
+- getMetaProperty
+- hasMetaProperty
+  
+为什么不使用放射？
+Groovy 中的方法分为原生方法以及运行时动态方法。
+这里它们通常表示为元方法（MetaMethods）。元方法可以告诉你在运行时有效的方法。
+
+当在重载 ``invokeMethod`` , ``getProperty`` 或 ``setProperty`` 时这将会非常有用。
+
+GroovyObject Methods
+++++++++++++++++++++
+
+``ExpandoMetaClass`` 的另一个特性是其允许重载 ``invokeMethod`` , ``getProperty`` 和 ``setProperty`` 方法，这些方法都可以在 ``groovy.lang.GroovyObject`` 中
+找到。
+
+这里将展示如何重载 ``invokeMethod`` 方法：
+
+.. code-block:: groovy
+
+
+    class Stuff {
+       def invokeMe() { "foo" }
+    }
+
+    Stuff.metaClass.invokeMethod = { String name, args ->
+       def metaMethod = Stuff.metaClass.getMetaMethod(name, args)
+       def result
+       if(metaMethod) result = metaMethod.invoke(delegate,args)
+       else {
+          result = "bar"
+       }
+       result
+    }
+
+    def stf = new Stuff()
+
+    assert "foo" == stf.invokeMe()
+    assert "bar" == stf.doStuff()
+
+
+闭包代码中的第一部分用于根据给定的方法名称及参数查找对应方法。
+如果方法找到，就可以对方法进行代理处理。如果没有找到，方法返回默认值。
+
+元方法是存在于 MetaClass 上的方法，无论是在运行时，还是编译时添加。
+对于 ``setProperty``  和 ``getProperty`` 同样适用。
+
+.. code-block:: groovy
+
+    class Person {
+       String name = "Fred"
+    }
+
+    Person.metaClass.getProperty = { String name ->
+       def metaProperty = Person.metaClass.getMetaProperty(name)
+       def result
+       if(metaProperty) result = metaProperty.getProperty(delegate)
+       else {
+          result = "Flintstone"
+       }
+       result
+    }
+
+    def p = new Person()
+
+    assert "Fred" == p.name
+    assert "Flintstone" == p.other
 
 
 
+The important thing to note here is that instead of a MetaMethod a MetaProperty instance is looked up. 
+If that exists the getProperty method of the MetaProperty is called, passing the delegate.
+
+
+Overriding Static invokeMethod
+++++++++++++++++++++++++++++++
+
+
+``ExpandoMetaClass`` 通过特殊的 ``invokeMethod``  语法来重载静态方法。
+
+.. code-block:: groovy
+
+    class Stuff {
+       static invokeMe() { "foo" }
+    }
+
+    Stuff.metaClass.'static'.invokeMethod = { String name, args ->
+       def metaMethod = Stuff.metaClass.getStaticMetaMethod(name, args)
+       def result
+       if(metaMethod) result = metaMethod.invoke(delegate,args)
+       else {
+          result = "bar"
+       }
+       result
+    }
+
+    assert "foo" == Stuff.invokeMe()
+    assert "bar" == Stuff.doStuff()
+
+这里重载逻辑与前面看的重载实例方法是一样的。
+唯一的区别是使用 ``metaClass.static`` 访问属性，调用 ``getStaticMethodName`` 来获取静态元方法实例。
+
+
+Extending Interfaces
+++++++++++++++++++++
+
+使用 ``ExpandoMetaClass`` 可以在接口上添加方法。
+要做到这一点，在应用启动时，需要在全局范围调用 ``ExpandoMetaClass.enableGlobally()`` 方法。
+
+.. code-block:: groovy
+
+    List.metaClass.sizeDoubled = {-> delegate.size() * 2 }
+
+    def list = []
+
+    list << 1
+    list << 2
+
+    assert 4 == list.sizeDoubled()
+
+
+Extension modules
+^^^^^^^^^^^^^^^^^
+
+Extending existing classes
+""""""""""""""""""""""""""
+
+An extension module allows you to add new methods to existing classes, including classes which are precompiled, like classes from the JDK. Those new methods, unlike those defined through a metaclass or using a category, are available globally. For example, when you write:
+
+扩展模块允许你在已有的类上添加新的方法，包括已经预编译的类，如 JDK 中的类。
+这里新添加的方法，不同于通过 metaclass 或 category 定义的方法，其可以在全局使用。 例如：
+
+*Standard extension method*
+
+.. code-block:: groovy
+
+    def file = new File(...)
+    def contents = file.getText('utf-8')
+
+
+``getText`` 方法并不存在于 ``File`` 类中。然而在 Groovy 在能使用，是由于其定义在一个称为 ``ResourceGroovyMethods`` 特殊类中：
+
+*ResourceGroovyMethods.java*
+
+.. code-block:: groovy
+
+    public static String getText(File file, String charset) throws IOException {
+     return IOGroovyMethods.getText(newReader(file, charset));
+    }
+
+
+你需要注意的是，这个扩展方法使用 ``static`` 定义在帮助类中（其他扩展方法都在这里定义）。
+``getText`` 第一个参数对应其接受对象，其他参数对应这个扩展方法上的参数。
+这样就可以在 ``File`` 类上调用 ``getText`` 方法。
+
+创建一个扩展模块过程非常简单：
+
+- 想上面编写一个扩展方法
+- 编写一个模块描述文件
+
+然后你需要将扩展模块及描述文件配置到 ``classpath`` 中，这样在 Groovy 中就可以使用。
+这意味着，你可以选择：
+
+- 直接将类与模块描述文件配置在 ``classpath`` 中
+- 或将其打包至 ``jar`` 中，方便能够重用
+
+扩展模块可以添加两类方法：
+
+- 实例方法（类实例上调用的方法）
+- 静态方法（类自身调用方法）
+
+Instance methods
+""""""""""""""""
+
+在类上添加实例方法，需要创建新的扩展类。
+例如，你想在 ``Integer`` 上添加一个 ``maxRetries`` 方法，其方法接受一个闭包，在没有异常发生的情况下可以执行 `n` 次。
+想实现上面的需求，你可以这样：
+
+*MaxRetriesExtension.groovy*
+
+.. code-block:: groovy
+
+    class MaxRetriesExtension {                                       // <1>                     
+        static void maxRetries(Integer self, Closure code) {          // <2>
+            int retries = 0
+            Throwable e
+            while (retries<self) {
+                try {
+                    code.call()
+                    break
+                } catch (Throwable err) {
+                    e = err
+                    retries++
+                }
+            }
+            if (retries==0 && e) {
+                throw e
+            }
+        }
+    }
+
+
+<1> The extension class
+<2> First argument of the static method corresponds to the receiver of the message, that is to say the extended instance
+
+在 `声明 <http://www.groovy-lang.org/metaprogramming.html#module-descriptor>`_ 你的扩展类之后，你可以这样调用：
+
+.. code-block:: groovy
+
+    int i=0
+    5.maxRetries {
+        i++
+    }
+    assert i == 1
+    i=0
+    try {
+        5.maxRetries {
+            throw new RuntimeException("oops")
+        }
+    } catch (RuntimeException e) {
+        assert i == 5
+    }
 
 
 
+Static methods
+""""""""""""""
+
+向类中也可以添加静态方法。
+在这种情况下，静态方法需要定义在独立的文件中。
+静态扩展方法和实例扩展方法不能在同一个类中定义。
+
+*StaticStringExtension.groovy*
+
+.. code-block:: groovy
+
+    class StaticStringExtension {                               // <1>                              
+        static String greeting(String self) {                   // <2>        
+            'Hello, world!'
+        }
+    }
 
 
- 
+<1> The static extension class
+<2> First argument of the static method corresponds to the class being extended and is unused
+
+这样你可以直接在 String 类上调用：
+
+.. code-block:: groovy
+
+    assert String.greeting() == 'Hello, world!'
+
+
+模块描述文件 （Module descriptor）
+"""""""""""""""""""""""""""""""""""""""""""
+
+在 Groovy 中加载扩展方法，需要声明其扩展类。
+需要在 ``META-INF／services`` 目录下创建 ``org.codehaus.groovy.runtime.ExtensionModule`` 文件。
+
+*org.codehaus.groovy.runtime.ExtensionModule*
+
+.. code-block:: groovy
+
+    moduleName=Test module for specifications
+    moduleVersion=1.0-test
+    extensionClasses=support.MaxRetriesExtension
+    staticExtensionClasses=support.StaticStringExtension
+
+
+描述文件中需要 4 个属性：
+
+- moduleName : 模块名称
+- moduleVersion: 模块版本号。需要注意，版本号用于检查你不会加载相同模块的不同版本。
+- extensionClasses: 扩展类列表。你可以填写多个类，使用逗号分割。
+- staticExtensionClasses: 静态方法扩展类列表。你可以填写多个类，使用逗号分割。
+
+请注意，并不要求在一个模块上同时定义静态方法与实例方法，你可以在一个模块中添加多个类。
+你也可以在一个模块中扩展多个不同的类。甚至可以在一个扩展类中，对多个类型进行扩展，但是建议能针对扩展方法进行分类。
+
+Extension modules and classpath
+"""""""""""""""""""""""""""""""
+
+It’s worth noting that you can’t use an extension which is compiled at the same time as code using it.
+需要注意的是，在编译后直接通过代码调用是无法使用此扩展的。
+这意味着使用扩展，需要在代码调用其之前，将其编译后的 classes 配置的到 ``classpath``。
+
+
+类型检查兼容性 （Compatibility with type checking）
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+与非类不同，扩展模块适用于类型检查：如果其配置在 ``classpath`` 中，类型检查器可以检查到扩展方法。也同样适用于静态编译。
 
 
 
+编译时元编程 （Compile-time metaprogramming）
+---------------------------------------------
+
+
+Groovy 中的编译时元编程允许在编译时生成代码。
+这种转换是在程序的修改抽象语法树（AST），在 Groovy 中我们称其为抽象语法树转换（AST transformations）。
+抽象语法树转换允许你在编译过程中修改 AST 并继续执行编译过程来生成字节码。
+相比较于运行时元编程，其优点在于，任何变化在 class 文件中都是可见的（字节码中可见）。
+在字节码中可见是很重要的，例如，如果你变化类的一部分（实现接口，扩展抽象类，等等）或者你需要 Java 来调用你的类。
+抽象语法树转换可以在 class 中添加方法。在使用运行时元编程中，新方法只能在 Groovy 被发现调用。
+如果相同方法使用编译时元编程，这个方法在 Java 中同样可见。
+不仅如此，编译时元编程也带来了更好的性能表现（这个过程中无需初始化阶段）。
+
+这一章节，我们开始讲解当前版本 Groovy 中的各种编译时转换。
+在随后的章节中，我们也会介绍如何 `实现抽象语法树 <http://www.groovy-lang.org/metaprogramming.html#developing-ast-xforms>`_ 以及这种技术的缺点。
+
+Available AST transformations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+抽象语法树转换分为两种类别：
+
+- global AST transformations are applied transparently, globally, as soon as they are found on compile classpath
+- local AST transformations are applied by annotating the source code with markers. Unlike global AST transformations, local AST transformations may support parameters.
+
+Groovy doesn’t ship with any global AST transformation, but you can find a list of local AST transformations available for you to use in your code here:
+
+
+代码生成转换（Code generation transformations）
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+这种类别转换包括抽象语法树转换，能帮助去除代码样板。
+这些代码都是些你必须写，但又不附带任何有用信息。
+通过自动化生成代码模版，接下来需要写的代码将更加整洁，这样引入错误的可能性也会降低。
+
+
+@groovy.transform.ToString
+++++++++++++++++++++++++++
+
+``@ToString`` 抽象语法树转换，生成可读性更强 ``toString`` 方法。
+例如，在 Person 上进行注解，将在其上自动生成 toString 方法：
+
+.. code-block:: groovy
+
+    import groovy.transform.ToString
+
+    @ToString
+    class Person {
+        String firstName
+        String lastName
+    }
+
+
+这样定义，通过下面的断言测试，意味着生成的 toString 方法将属性值打印出：
+
+.. code-block:: groovy
+
+    def p = new Person(firstName: 'Jack', lastName: 'Nicholson')
+    assert p.toString() == 'Person(Jack, Nicholson)'
+
+下面列表中总结了 @ToString 可以接收的参数：
+
+(TBD)
+
+
+@groovy.transform.EqualsAndHashCode
++++++++++++++++++++++++++++++++++++
+
+The @EqualsAndHashCode AST transformation aims at generating equals and hashCode methods for you. 
+``@EqualsAndHashCode`` 用于生成 ``equals`` 和 ``hashcode`` 方法。
+生成 ``hashcode`` 方法依照 ``Effective Java by Josh Bloch`` 中描述的做法：
+
+.. code-block:: groovy
+
+
+    import groovy.transform.EqualsAndHashCode
+
+    @EqualsAndHashCode
+    class Person {
+        String firstName
+        String lastName
+    }
+
+    def p1 = new Person(firstName: 'Jack', lastName: 'Nicholson')
+    def p2 = new Person(firstName: 'Jack', lastName: 'Nicholson')
+
+    assert p1==p2
+    assert p1.hashCode() == p2.hashCode()
 
 
 
+这里有一些选项用于改变 ``@EqualsAndHashCode`` 的行为：
+
+ （TBD）
 
 
 
-
+@groovy.transform.TupleConstructor
+++++++++++++++++++++++++++++++++++
 
