@@ -1332,4 +1332,84 @@ If the field is declared volatile then initialization will be synchronized using
 使用 ``sofe=true`` 参数设置，这里的属性将为使用软引用，提供了一个简单的实现方式。
 在这种情况下，如果 ``GC`` 开始回收引用，初始化将在下次访问 field 时开始执行。
 
+@groovy.lang.Newify
++++++++++++++++++++
+
+@Newify 用于使用可替换的语法来构建对象：
+
+- 使用 Python 语法：
+
+.. code-block:: groovy
+
+    @Newify([Tree,Leaf])
+        class TreeBuilder {
+        Tree tree = Tree(Leaf('A'),Leaf('B'),Tree(Leaf('C')))
+    }
+
+- 使用 Ruby 语法：
+
+.. code-block:: groovy
+
+    @Newify([Tree,Leaf])
+    class TreeBuilder {
+        Tree tree = Tree.new(Leaf.new('A'),Leaf.new('B'),Tree.new(Leaf.new('C')))
+    }
+
+设置 flag 为 false 可以禁止 ``Ruby`` 语法。
+
+
+
+@groovy.transform.Sortable
+++++++++++++++++++++++++++
+
+The @Sortable AST transformation is used to help write classes that are Comparable and easily sorted by numerous properties. It is easy to use as shown in the following example where we annotate the Person class:
+
+``@Sortable`` 用于编写可比较类，通过多个属性进行排序。接下来的代码中在 ``Person`` 类上注解使用：
+
+.. code-block:: groovy
+
+    import groovy.transform.Sortable
+
+    @Sortable class Person {
+        String first
+        String last
+        Integer born
+    }
+
+生成的类中有如下属性：
+
+- 实现 ``Comparable``  接口
+- 其中 ``compareTo`` 方法按照 ``first`` , ``last`` , ``born`` 属性顺序实现
+- 有三个比较方法：``comparatorByFirst``, ``comparatorByLast`` 和 ``comparatorByBorn``
+
+生成 ``compareTo`` 方法：
+
+.. code-block:: groovy
+
+    public int compareTo(java.lang.Object obj) {
+        if (this.is(obj)) {
+            return 0
+        }
+        if (!(obj instanceof Person)) {
+            return -1
+        }
+        java.lang.Integer value = this.first <=> obj.first
+        if (value != 0) {
+            return value
+        }
+        value = this.last <=> obj.last
+        if (value != 0) {
+            return value
+        }
+        value = this.born <=> obj.born
+        if (value != 0) {
+            return value
+        }
+        return 0
+    }
+
+
+
+
+
 
