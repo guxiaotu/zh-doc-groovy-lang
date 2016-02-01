@@ -1572,7 +1572,6 @@ Groovy 内建的构建机制，如果可以满足你的需求，也可以不急�
 ExternalStrategy
 ~~~~~~~~~~~~~~~~
 
-To use the ExternalStrategy, create and annotate a Groovy builder class using the @Builder annotation, specify the class the builder is for using forClass and indicate use of the ExternalStrategy. Suppose you have the following class you would like a builder for:
 创建一个 builder 类，使用 @Builder 注解，指定 ExternalStrategy 及 ``forClass`` .
 假设你需要构建下面这个类：
 
@@ -1650,9 +1649,163 @@ To use the ExternalStrategy, create and annotate a Groovy builder class using th
 
 
 
-The builderMethodName and builderClassName annotation attributes for @Builder aren’t applicable for this strategy.
+@Builder 中的 ``buildMethodName`` 和 ``builderClassName`` 并不适用这种模式。
 
-You can use the ExternalStrategy in conjunction with @Canonical. If your @Builder annotation doesn’t have explicit includes or excludes annotation attributes but the @Canonical annotation of the class you are creating the builder for does, the ones from @Canonical will be re-used for @Builder.
+你可以将 ``ExternalStrategy`` 与 @Canonical 结合使用，主要可以用于 ``includes`` 或 ``excludes`` 特定的属性。
+
 
 DefaultStrategy
-To use the DefaultStrategy, annotate your Groovy class using the @Builder annotation as shown in this example:
+~~~~~~~~~~~~~~~
+
+下面代码中将展示如何使用 ``DefaultStrategy``:
+
+.. code-block:: groovy
+
+    import groovy.transform.builder.Builder
+
+    @Builder
+    class Person {
+        String firstName
+        String lastName
+        int age
+    }
+
+    def person = Person.builder().firstName("Robert").lastName("Lewandowski").age(21).build()
+    assert person.firstName == "Robert"
+    assert person.lastName == "Lewandowski"
+    assert person.age == 21
+
+
+如果你想，可以通过使用 ``builderClassName`` , ``buildMethodName``, ``builderMethodName``, ``prefix``, ``includes`` 和 ``excludes`` 
+注解属性自定构建过程的各个方面，下面的例子中将使用其中的一部分：
+
+.. code-block:: groovy
+
+    import groovy.transform.builder.Builder
+
+    @Builder(buildMethodName='make', builderMethodName='maker', prefix='with', excludes='age')
+    class Person {
+        String firstName
+        String lastName
+        int age
+    }
+
+    def p = Person.maker().withFirstName("Robert").withLastName("Lewandowski").make()
+    assert "$p.firstName $p.lastName" == "Robert Lewandowski"
+
+这种模式下还支持注解静态方法及构造器。
+在这种情况下，静态方法或构造方法的参数将成为构建对象的属性，静态方法的返回类型为目标构建类型。 
+
+如果在一个类中使用了多个 @Builder , 你需要确保生成的辅助类或工厂方法的名字不会重复，这里例子中将讲解这一点：
+
+ .. code-block:: groovy
+ 
+    import groovy.transform.builder.*
+    import groovy.transform.*
+
+    @ToString
+    @Builder
+    class Person {
+      String first, last
+      int born
+
+      Person(){}
+
+      @Builder(builderClassName='MovieBuilder', builderMethodName='byRoleBuilder')
+      Person(String roleName) {
+         if (roleName == 'Jack Sparrow') {
+             this.first = 'Johnny'; this.last = 'Depp'; this.born = 1963
+         }
+      }
+
+      @Builder(builderClassName='NameBuilder', builderMethodName='nameBuilder', prefix='having', buildMethodName='fullName')
+      static String join(String first, String last) {
+          first + ' ' + last
+      }
+
+      @Builder(builderClassName='SplitBuilder', builderMethodName='splitBuilder')
+      static Person split(String name, int year) {
+          def parts = name.split(' ')
+          new Person(first: parts[0], last: parts[1], born: year)
+      }
+    }
+
+    assert Person.splitBuilder().name("Johnny Depp").year(1963).build().toString() == 'Person(Johnny, Depp, 1963)'
+    assert Person.byRoleBuilder().roleName("Jack Sparrow").build().toString() == 'Person(Johnny, Depp, 1963)'
+    assert Person.nameBuilder().havingFirst('Johnny').havingLast('Depp').fullName() == 'Johnny Depp'
+    assert Person.builder().first("Johnny").last('Depp').born(1963).build().toString() == 'Person(Johnny, Depp, 1963)'
+
+``forClass`` 属性不适用于这种模式。
+
+InitializerStrategy
+~~~~~~~~~~~~~~~~~~~
+
+``InitializerStrategy`` 的使用方式：
+
+.. code-block:: groovy
+
+    import groovy.transform.builder.*
+    import groovy.transform.*
+
+    @ToString
+    @Builder(builderStrategy=InitializerStrategy)
+    class Person {
+        String firstName
+        String lastName
+        int age
+    }
+
+
+Your class will be locked down to have a single public constructor taking a "fully set" initializer. It will also have a factory method to create the initializer. These are used as follows:
+
+.. code-block:: groovy
+
+    source
+    @CompileStatic
+        def firstLastAge() {
+        assert new Person(Person.createInitializer().firstName("John").lastName("Smith").age(21)).toString() == 'Person(John, Smith, 21)'
+    }
+    firstLastAge()
+
+使用初始化方式，如果设置属性不完整将出现编译错误。如果你不需要严格控制，你可以不使用 ``@Compilation`` 。
+
+
+You can use the InitializerStrategy in conjunction with @Canonical and @Immutable. 
+你可以将 ``InitializerStrategy`` 结合 ``@Canonical`` 和 ``@Immutable`` 使用。
+这样可以通过使用 ``includes`` 或 ``excludes`` 明确特定的属性的使用。
+
+下面代码使用 @Builder 结合 @Immutable:
+
+.. code-block:: groovy
+
+    import groovy.transform.builder.*
+    import groovy.transform.*
+
+    @Builder(builderStrategy=InitializerStrategy)
+    @Immutable
+    class Person {
+        String first
+        String last
+        int born
+    }
+
+    @CompileStatic
+    def createFirstLastBorn() {
+      def p = new Person(Person.createInitializer().first('Johnny').last('Depp').born(1963))
+      assert "$p.first $p.last $p.born" == 'Johnny Depp 1963'
+    }
+
+    createFirstLastBorn()
+
+这种模式下还支持注解静态方法及构造器。
+在这种情况下，静态方法或构造方法的参数将成为构建对象的属性，静态方法的返回类型为目标构建类型。 
+如果在一个类中使用了多个 @Builder , 你需要确保生成的辅助类或工厂方法的名字不会重复
+
+``forClass`` 属性不适用于这种模式。
+
+
+
+Class design annotations
+""""""""""""""""""""""""
+
+
