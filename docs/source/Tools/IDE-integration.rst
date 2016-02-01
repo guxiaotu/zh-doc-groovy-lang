@@ -4,7 +4,7 @@ IDE integration
 
 这里有一些支持 Groovy 语言的 IDEs 和编辑器。
 
-.. csv-table:: Frozen Delights!
+.. csv-table:: 
    :header: "Editor",  "Syntax highlighting", "Code completion", "Refactoring"
    :widths: 40, 20, 20, 20
 

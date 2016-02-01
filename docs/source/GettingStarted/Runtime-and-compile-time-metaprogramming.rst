@@ -1408,8 +1408,251 @@ The @Sortable AST transformation is used to help write classes that are Comparab
         return 0
     }
 
+作为一个生成比较器的例子， ``comparatorByFirst`` 中有一个这样的 ``compare`` 方法：
+
+.. code-block:: groovy
+
+    public int compare(java.lang.Object arg0, java.lang.Object arg1) {
+        if (arg0 == arg1) {
+            return 0
+        }
+        if (arg0 != null && arg1 == null) {
+            return -1
+        }
+        if (arg0 == null && arg1 != null) {
+            return 1
+        }
+        return arg0.first <=> arg1.first
+    }
+
+这样 ``Person`` 可以用于任何需要比较的应用中，类似下面场景：
+
+.. code-block:: groovy
+
+    def people = [
+        new Person(first: 'Johnny', last: 'Depp', born: 1963),
+        new Person(first: 'Keira', last: 'Knightley', born: 1985),
+        new Person(first: 'Geoffrey', last: 'Rush', born: 1951),
+        new Person(first: 'Orlando', last: 'Bloom', born: 1977)
+    ]
+
+    assert people[0] > people[2]
+    assert people.sort()*.last == ['Rush', 'Depp', 'Knightley', 'Bloom']
+    assert people.sort(false, Person.comparatorByFirst())*.first == ['Geoffrey', 'Johnny', 'Keira', 'Orlando']
+    assert people.sort(false, Person.comparatorByLast())*.last == ['Bloom', 'Depp', 'Knightley', 'Rush']
+    assert people.sort(false, Person.comparatorByBorn())*.last == ['Rush', 'Depp', 'Bloom', 'Knightley']
+
+通常，所有属性都会按照其定义的顺序生产 ``compareTo`` 方法。
+你可以通过设置 ``includes`` 和 ``excludes`` 注解属性来配置生成所需要的 ``compareTo`` 方法。
+``includes`` 中设置的属性顺序决定了属性比较过程中的优先顺序。
+为说明这一点，可以看看下面 ``Person`` 的定义：
+
+.. code-block:: groovy
+
+    @Sortable(includes='first,born') class Person {
+        String last
+        int born
+        String first
+    }
+
+这里 ``Person`` 中将包含 ``comparatorByFirst`` 和 ``comparatorByBorn`` 比较方法，其生成的 ``compareTo`` 方法就像这样：
+
+.. code-block:: groovy
+
+    public int compareTo(java.lang.Object obj) {
+        if (this.is(obj)) {
+            return 0
+        }
+        if (!(obj instanceof Person)) {
+            return -1
+        }
+        java.lang.Integer value = this.first <=> obj.first
+        if (value != 0) {
+            return value
+        }
+        value = this.born <=> obj.born
+        if (value != 0) {
+            return value
+        }
+        return 0
+    }
+
+``Person`` 可以这样使用：
+
+.. code-block:: groovy
+
+    def people = [
+        new Person(first: 'Ben', last: 'Affleck', born: 1972),
+        new Person(first: 'Ben', last: 'Stiller', born: 1965)
+    ]
+
+    assert people.sort()*.last == ['Stiller', 'Affleck']
+
+@groovy.transform.builder.Builder
+++++++++++++++++++++++++++++++++++++
+
+``@Builder`` 用于帮助创建流式 API.
+这种转换支持多种构建策略，针对不同的案例；并可以根据一系列配置选项，自定义构建过程。
+甚至可以定义你自己的构建策略。
+下表中列举了， Groovy 中支持的策略及其策略中支持的配置选项：
+
+.. csv-table:: 
+    :header: "Strategy", "Description", "builderClassName", "builderMethodName", "buildMethodName", "prefix", "includes/excludes"
+
+    "SimpleStrategy", "chained setters", "n/a", "n/a", "n/a", "yes", "default 'set' yes"
+    "ExternalStrategy", "explicit builder class, class being built untouched", "n/a", "n/a", "yes, default 'build'", "yes, default ''", "yes"
+    "DefaultStrategy", "creates a nested helper class", "yes, default <TypeName>Builder", "yes, default 'builder'", "yes, default 'build'", "yes, default ''", "yes"
+    "InitializerStrategy", "creates a nested helper class providing type-safe fluent creation", "yes, default <TypeName>Initializer", "yes, default 'createInitializer'", "yes, default 'create' but usually only used internally", "yes, default ''", "yes"
+
+SimpleStrategy
+~~~~~~~~~~~~~~
+
+下面例子中使用 ``SimpleStrategy`` :
+
+.. code-block:: groovy
+
+    import groovy.transform.builder.*
+
+    @Builder(builderStrategy=SimpleStrategy)
+    class Person {
+        String first
+        String last
+        Integer born
+    }
+
+然后，可以通过链式调用 ``setters`` :
+
+.. code-block:: groovy
+
+    def p1 = new Person().setFirst('Johnny').setLast('Depp').setBorn(1963)
+    assert "$p1.first $p1.last" == 'Johnny Depp'
+
+对于每一个属性都会生成类似如下的 ``setter`` 方法：
+
+.. code-block:: groovy
+
+    public Person setFirst(java.lang.String first) {
+        this.first = first
+        return this
+    }
+
+你可以向下面这样指定一个前缀：
+
+.. code-block:: groovy
+
+    import groovy.transform.builder.*
+
+    @Builder(builderStrategy=SimpleStrategy, prefix="")
+    class Person {
+        String first
+        String last
+        Integer born
+    }
+
+这里会看到，调用链式 setters 会是这种样式：
+
+.. code-block:: groovy
+
+    def p = new Person().first('Johnny').last('Depp').born(1963)
+    assert "$p.first $p.last" == 'Johnny Depp'
+
+你可以将 SimpleStrategy 与 @Canonical 结合使用，主要可以用于 ``includes`` 或 ``excludes`` 特定的属性。
+Groovy 内建的构建机制，如果可以满足你的需求，也可以不急于使用 ``@Builder`` 方式：
+
+.. code-block:: groovy
+
+    def p2 = new Person(first: 'Keira', last: 'Knightley', born: 1985)
+    def p3 = new Person().with {
+        first = 'Geoffrey'
+        last = 'Rush'
+        born = 1951
+    }
+
+
+ExternalStrategy
+~~~~~~~~~~~~~~~~
+
+To use the ExternalStrategy, create and annotate a Groovy builder class using the @Builder annotation, specify the class the builder is for using forClass and indicate use of the ExternalStrategy. Suppose you have the following class you would like a builder for:
+创建一个 builder 类，使用 @Builder 注解，指定 ExternalStrategy 及 ``forClass`` .
+假设你需要构建下面这个类：
+
+.. code-block:: groovy
+
+    class Person {
+        String first
+        String last
+        int born
+    }
+
+明确指定创建及使用的 builder 类：
+
+.. code-block:: groovy
+
+    import groovy.transform.builder.*
+
+    @Builder(builderStrategy=ExternalStrategy, forClass=Person)
+    class PersonBuilder { }
+
+    def p = new PersonBuilder().first('Johnny').last('Depp').born(1963).build()
+    assert "$p.first $p.last" == 'Johnny Depp'
+
+这里需要注意，编写的 builder 类（通常此类都是空的）将会自动生成合适的 build 方法及 setters 方法。
+生成的 build 方法如下：
+
+.. code-block:: groovy
+
+    public Person build() {
+        Person _thePerson = new Person()
+        _thePerson.first = first
+        _thePerson.last = last
+        _thePerson.born = born
+        return _thePerson
+    }
+
+
+对于 Java 或 Groovy 中的普通 JavaBean （无参构造函数及属性 setter 方法） 都可以为其创建 builder.
+下面的例子就是对于 Java 类来创建 builder  :
+
+.. code-block:: groovy
+
+    import groovy.transform.builder.*
+
+    @Builder(builderStrategy=ExternalStrategy, forClass=javax.swing.DefaultButtonModel)
+    class ButtonModelBuilder {}
+
+    def model = new ButtonModelBuilder().enabled(true).pressed(true).armed(true).rollover(true).selected(true).build()
+    assert model.isArmed()
+    assert model.isPressed()
+    assert model.isEnabled()
+    assert model.isSelected()
+    assert model.isRollover()
+
+这里可以使用 ``prefix`` ， ``includes`` ， ``excludes`` 以及 ``buildMethodName`` 注解属性来自定化 builder。
+下面例子中将说明这些自定义的使用方式：
+
+.. code-block:: groovy
+
+    import groovy.transform.builder.*
+    import groovy.transform.Canonical
+
+    @Canonical
+    class Person {
+        String first
+        String last
+        int born
+    }
+
+    @Builder(builderStrategy=ExternalStrategy, forClass=Person, includes=['first', 'last'], buildMethodName='create', prefix='with')
+    class PersonBuilder { }
+
+    def p = new PersonBuilder().withFirst('Johnny').withLast('Depp').create()
+    assert "$p.first $p.last" == 'Johnny Depp'
 
 
 
+The builderMethodName and builderClassName annotation attributes for @Builder aren’t applicable for this strategy.
 
+You can use the ExternalStrategy in conjunction with @Canonical. If your @Builder annotation doesn’t have explicit includes or excludes annotation attributes but the @Canonical annotation of the class you are creating the builder for does, the ones from @Canonical will be re-used for @Builder.
 
+DefaultStrategy
+To use the DefaultStrategy, annotate your Groovy class using the @Builder annotation as shown in this example:
