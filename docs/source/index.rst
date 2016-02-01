@@ -14,6 +14,7 @@
 
    GettingStarted/index
    Groovy-module-guides/index
+   Tools/index
    
 
 
